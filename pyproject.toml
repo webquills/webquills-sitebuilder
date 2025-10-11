@@ -52,4 +52,4 @@ ignore = [
 "*/celery.py" = ["T201"]  # Allow print in debug tasks
 
 [tool.ruff.lint.isort]
-known-first-party = ["project_name"]
+known-first-party = ["sitebuilder"]

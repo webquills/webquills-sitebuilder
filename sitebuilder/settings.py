@@ -27,6 +27,7 @@ ROOT_URLCONF = f"{PROJECT}.urls"
 
 INSTALLED_APPS = [
     # Add your custom apps here:
+    "sitebuilder",
     # Third party apps:
     "django_extensions",
     # Core Django apps below custom so we can override their templates
