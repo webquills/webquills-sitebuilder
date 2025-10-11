@@ -1,0 +1,55 @@
+[project]
+name = "django-project-template"
+version = "5.2.0"
+description = "A Django 5.2 project template"
+requires-python = ">=3.10"
+dependencies = [
+    "django>=5.2,<6.0",
+    "django-environ>=0.11.0",
+    "django-extensions>=3.2.3",
+    "django-rich>=1.10.0",
+    "docutils>=0.21",
+    "pillow>=10.4.0",
+    "rich>=13.8.0",
+    "granian>=1.6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "coverage>=7.6.0",
+    "django-debug-toolbar>=4.4.0",
+    "ipython>=8.27.0",
+    "ruff>=0.6.0",
+    "tox>=4.18.0",
+    "pre-commit>=3.8.0",
+    "djlint>=1.36.0",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+    "DJ",   # flake8-django
+    "LOG",  # flake8-logging
+    "T20",  # flake8-print
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"*/migrations/*" = ["E501"]
+"manage.py" = ["E402"]
+"*/celery.py" = ["T201"]  # Allow print in debug tasks
+
+[tool.ruff.lint.isort]
+known-first-party = ["project_name"]
