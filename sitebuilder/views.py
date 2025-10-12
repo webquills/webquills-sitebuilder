@@ -10,4 +10,5 @@ class ProfileView(LoginRequiredMixin, TemplateView):
     """User profile view - requires authentication."""
 
     template_name = "profile.html"
-    login_url = "/"
+    # Redirect unauthenticated users to the allauth login page
+    login_url = "/accounts/login/"

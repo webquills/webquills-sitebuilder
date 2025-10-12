@@ -133,6 +133,7 @@ ACCOUNT_LOGIN_BY_CODE_ENABLED = True
 ACCOUNT_LOGIN_BY_CODE_TIMEOUT = 1800  # 30 minutes
 
 # Redirect settings
+LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/profile/"
 ACCOUNT_LOGOUT_REDIRECT_URL = "/"
 

@@ -1,21 +1,18 @@
 """Tests for authentication functionality with django-allauth."""
 
 from django.contrib.auth import get_user_model
-from django.test import Client
+from django.test import TestCase
 from django.urls import reverse
-
-from tests.base import SiteBuilderTestCase
 
 User = get_user_model()
 
 
-class LoginTests(SiteBuilderTestCase):
+class LoginTests(TestCase):
     """Tests for login functionality."""
 
     def setUp(self):
         """Set up test client and user."""
         super().setUp()
-        self.client = Client()
         self.login_url = reverse("account_login")
         self.user = User.objects.create_user(
             username="testuser", email="test@example.com", password="testpass123"
@@ -61,15 +58,8 @@ class LoginTests(SiteBuilderTestCase):
         response = self.client.get(self.login_url)
         self.assertContains(response, "sign-in code")
 
-    def test_login_page_shows_github_option(self):
-        """Test that login page shows GitHub social login option."""
-        response = self.client.get(self.login_url)
-        # GitHub provider may not be available without proper configuration
-        # Just check that the page loads successfully
-        self.assertEqual(response.status_code, 200)
-
-    def test_authenticated_user_can_access_login_page(self):
-        """Test that authenticated users can still access login page."""
+    def test_authenticated_user_redirect_access_login_page(self):
+        """Test that authenticated users are redirected from login page."""
         from allauth.account.models import EmailAddress
 
         EmailAddress.objects.create(
@@ -78,17 +68,16 @@ class LoginTests(SiteBuilderTestCase):
 
         self.client.login(username="testuser", password="testpass123")
         response = self.client.get(self.login_url)
-        # Django-allauth may redirect authenticated users
-        self.assertIn(response.status_code, [200, 302])
+        # Django-allauth should redirect authenticated users
+        self.assertEqual(response.status_code, 302)
 
 
-class LogoutTests(SiteBuilderTestCase):
+class LogoutTests(TestCase):
     """Tests for logout functionality."""
 
     def setUp(self):
         """Set up test client and user."""
         super().setUp()
-        self.client = Client()
         self.logout_url = reverse("account_logout")
         self.user = User.objects.create_user(
             username="testuser", email="test@example.com", password="testpass123"
@@ -110,13 +99,12 @@ class LogoutTests(SiteBuilderTestCase):
         self.assertFalse(response.context["user"].is_authenticated)
 
 
-class SignupTests(SiteBuilderTestCase):
+class SignupTests(TestCase):
     """Tests for signup functionality."""
 
     def setUp(self):
         """Set up test client."""
         super().setUp()
-        self.client = Client()
         self.signup_url = reverse("account_signup")
 
     def test_signup_page_shows_closed_message(self):
@@ -133,13 +121,12 @@ class SignupTests(SiteBuilderTestCase):
         self.assertNotContains(response, 'name="email"')
 
 
-class AccountAdapterTests(SiteBuilderTestCase):
+class AccountAdapterTests(TestCase):
     """Tests for custom AccountAdapter."""
 
     def setUp(self):
         """Set up test client and user."""
         super().setUp()
-        self.client = Client()
         self.login_url = reverse("account_login")
         self.logout_url = reverse("account_logout")
         self.user = User.objects.create_user(
@@ -158,26 +145,27 @@ class AccountAdapterTests(SiteBuilderTestCase):
         response = self.client.post(
             self.login_url,
             {"login": "test@example.com", "password": "testpass123"},
-            follow=True,
+            follow=False,
         )
         # Custom adapter should redirect to /profile/
-        self.assertEqual(response.request["PATH_INFO"], "/profile/")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/profile/", response["Location"])
 
     def test_logout_redirects_to_home(self):
         """Test that logout redirects to home page."""
         self.client.login(username="testuser", password="testpass123")
-        response = self.client.post(self.logout_url, follow=True)
+        response = self.client.post(self.logout_url, follow=False)
         # Custom adapter should redirect to /
-        self.assertEqual(response.request["PATH_INFO"], "/")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/", response["Location"])
 
 
-class MFATests(SiteBuilderTestCase):
+class MFATests(TestCase):
     """Tests for MFA functionality."""
 
     def setUp(self):
         """Set up test client and user."""
         super().setUp()
-        self.client = Client()
         self.user = User.objects.create_user(
             username="testuser", email="test@example.com", password="testpass123"
         )

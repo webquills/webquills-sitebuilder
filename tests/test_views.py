@@ -1,21 +1,18 @@
 """Tests for views and basic functionality."""
 
 from django.contrib.auth import get_user_model
-from django.test import Client
+from django.test import TestCase
 from django.urls import reverse
-
-from tests.base import SiteBuilderTestCase
 
 User = get_user_model()
 
 
-class HomePageViewTests(SiteBuilderTestCase):
+class HomePageViewTests(TestCase):
     """Tests for the home page view."""
 
     def setUp(self):
         """Set up test client and user."""
         super().setUp()
-        self.client = Client()
         self.home_url = reverse("home")
 
     def test_home_page_loads_successfully(self):
@@ -37,7 +34,7 @@ class HomePageViewTests(SiteBuilderTestCase):
     def test_home_page_shows_logout_when_authenticated(self):
         """Test that authenticated users see logout option."""
         # Create and login user
-        user = User.objects.create_user(
+        User.objects.create_user(
             username="testuser", email="test@example.com", password="testpass123"
         )
         self.client.login(username="testuser", password="testpass123")
@@ -47,13 +44,12 @@ class HomePageViewTests(SiteBuilderTestCase):
         self.assertContains(response, "/accounts/logout/")
 
 
-class ProfileViewTests(SiteBuilderTestCase):
+class ProfileViewTests(TestCase):
     """Tests for the profile view."""
 
     def setUp(self):
         """Set up test client and user."""
         super().setUp()
-        self.client = Client()
         self.profile_url = reverse("profile")
         self.user = User.objects.create_user(
             username="testuser", email="test@example.com", password="testpass123"
@@ -63,7 +59,7 @@ class ProfileViewTests(SiteBuilderTestCase):
         """Test that unauthenticated users are redirected."""
         response = self.client.get(self.profile_url)
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(response.url.startswith("/"))
+        self.assertRedirects(response, "/accounts/login/?next=/profile/")
 
     def test_profile_loads_when_authenticated(self):
         """Test that authenticated users can access profile."""
