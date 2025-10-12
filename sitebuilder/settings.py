@@ -30,17 +30,24 @@ INSTALLED_APPS = [
     "sitebuilder",
     # Third party apps:
     "django_extensions",
+    # django-allauth
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.github",
+    "allauth.mfa",
     # Core Django apps below custom so we can override their templates
     "django.contrib.admin",
     "django.contrib.admindocs",
     "django.contrib.auth",
     "django.contrib.contenttypes",
+    "django.contrib.humanize",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.sites",
     "django.contrib.staticfiles",
 ]
-
+SITE_ID = 1  # For the sites framework
 
 MIDDLEWARE = [
     # https://docs.djangoproject.com/en/5.2/ref/middleware/#django.middleware.security.SecurityMiddleware
@@ -54,6 +61,8 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # Set request.site by checking for a Site where domain is the host header
     "django.contrib.sites.middleware.CurrentSiteMiddleware",
+    # django-allauth middleware
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 TEMPLATES = [
@@ -105,6 +114,63 @@ if DOTENV.exists() and not env("IGNORE_ENV_FILE", default=False):
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG", default=False)
 ALLOWED_HOSTS = env("ALLOWED_HOSTS", default=[])
+
+# django-allauth configuration
+# https://docs.allauth.org/en/latest/
+AUTHENTICATION_BACKENDS = [
+    # Needed to login by username in Django admin, regardless of allauth
+    "django.contrib.auth.backends.ModelBackend",
+    # allauth specific authentication methods, such as login by email
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+# Account settings
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_EMAIL_VERIFICATION = "optional" if DEBUG else "mandatory"
+ACCOUNT_ADAPTER = "sitebuilder.adapters.AccountAdapter"
+ACCOUNT_LOGIN_BY_CODE_ENABLED = True
+ACCOUNT_LOGIN_BY_CODE_TIMEOUT = 1800  # 30 minutes
+
+# Redirect settings
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "/profile/"
+ACCOUNT_LOGOUT_REDIRECT_URL = "/"
+
+# MFA settings (webauthn to be added later)
+MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
+MFA_PASSKEY_LOGIN_ENABLED = True
+
+# Social account settings. We'll start with an empty dict and populate it
+# if we have the necessary environment variables.
+SOCIALACCOUNT_PROVIDERS = {}
+# Don't trust 3rd party emails by default. We'll enable this per-provider as needed
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = False
+# If we trust the provider's email, we can auto-connect social accounts
+# to existing users with the same email address. This prevents users
+# from having to manually connect their social accounts after logging in.
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+# Automatically create user accounts on successful social login
+SOCIALACCOUNT_AUTO_SIGNUP = True
+
+# GitHub social login
+GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID", default="")
+GITHUB_SECRET = env("GITHUB_SECRET", default="")
+if GITHUB_CLIENT_ID and GITHUB_SECRET:
+    SOCIALACCOUNT_PROVIDERS["github"] = {
+        "APPS": [
+            {
+                "client_id": GITHUB_CLIENT_ID,
+                "secret": GITHUB_SECRET,
+                "key": "",
+            }
+        ],
+        "EMAIL_AUTHENTICATION": True,  # Trust email from GitHub
+        "SCOPE": ["user", "repo", "read:org"],
+        "VERIFIED_EMAIL": True,
+    }
+
 
 # If running behind a reverse proxy that terminates SSL for you, you need to set
 # SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -342,10 +408,6 @@ if DEBUG:
 #######################################################################################
 if DEBUG:
     ALLOWED_HOSTS = ["*"]
-    # So you don't have to add localhost and/or 127.0.0.1 to your Sites table:
-    # But note: if your Django project only serves one site, you can set this outside
-    # the DEBUG section. See README for details.
-    SITE_ID = 1
 
     if find_spec("debug_toolbar") is not None:
         INSTALLED_APPS.append("debug_toolbar")
