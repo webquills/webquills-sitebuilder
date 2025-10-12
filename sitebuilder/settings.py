@@ -94,35 +94,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# django-allauth configuration
-# https://docs.allauth.org/en/latest/
-AUTHENTICATION_BACKENDS = [
-    # Needed to login by username in Django admin, regardless of allauth
-    "django.contrib.auth.backends.ModelBackend",
-    # allauth specific authentication methods, such as login by email
-    "allauth.account.auth_backends.AuthenticationBackend",
-]
-
-# Account settings
-ACCOUNT_AUTHENTICATION_METHOD = "email"
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-ACCOUNT_SIGNUP_EMAIL_ENTER_TWICE = False
-ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
-ACCOUNT_EMAIL_VERIFICATION = "optional"  # "mandatory" in production
-ACCOUNT_ADAPTER = "sitebuilder.adapters.AccountAdapter"
-ACCOUNT_LOGIN_BY_CODE_ENABLED = True
-ACCOUNT_LOGIN_BY_CODE_TIMEOUT = 180  # 3 minutes
-
-# Redirect settings
-LOGIN_REDIRECT_URL = "/profile/"
-ACCOUNT_LOGOUT_REDIRECT_URL = "/"
-
-# MFA settings
-MFA_SUPPORTED_TYPES = ["totp", "webauthn"]
-MFA_PASSKEY_LOGIN_ENABLED = True
-
 #######################################################################################
 # SECTION 1: Settings that can (and maybe should) differ between environments
 #######################################################################################
@@ -143,7 +114,36 @@ SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG", default=False)
 ALLOWED_HOSTS = env("ALLOWED_HOSTS", default=[])
 
-# Social account settings (requires env to be defined)
+# django-allauth configuration
+# https://docs.allauth.org/en/latest/
+AUTHENTICATION_BACKENDS = [
+    # Needed to login by username in Django admin, regardless of allauth
+    "django.contrib.auth.backends.ModelBackend",
+    # allauth specific authentication methods, such as login by email
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+# Account settings
+ACCOUNT_AUTHENTICATION_METHOD = "email"
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_SIGNUP_EMAIL_ENTER_TWICE = False
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_EMAIL_VERIFICATION = "optional" if DEBUG else "mandatory"
+ACCOUNT_ADAPTER = "sitebuilder.adapters.AccountAdapter"
+ACCOUNT_LOGIN_BY_CODE_ENABLED = True
+ACCOUNT_LOGIN_BY_CODE_TIMEOUT = 180  # 3 minutes
+
+# Redirect settings
+LOGIN_REDIRECT_URL = "/profile/"
+ACCOUNT_LOGOUT_REDIRECT_URL = "/"
+
+# MFA settings
+MFA_SUPPORTED_TYPES = ["totp", "webauthn", "recovery_codes"]
+MFA_PASSKEY_LOGIN_ENABLED = True
+
+# Social account settings
 SOCIALACCOUNT_PROVIDERS = {
     "github": {
         "APPS": [
