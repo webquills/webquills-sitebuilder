@@ -1,16 +1,84 @@
 {% extends "base.html" %}
+{% load i18n %}
+
 {% block title %}
   Home — Webquills Sitebuilder
 {% endblock title %}
+
 {% block header %}
-  <h1>Welcome to Webquills Sitebuilder</h1>
+  {% if request.user.is_authenticated %}
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="{% url 'home' %}">WebQuills Site Builder</a>
+        <div class="navbar-nav ms-auto">
+          <a class="btn btn-primary me-2" href="{% url 'profile' %}">Profile</a>
+          <a class="btn btn-outline-secondary" href="{% url 'account_logout' %}">Logout</a>
+        </div>
+      </div>
+    </nav>
+  {% else %}
+    <h1>Welcome to Webquills Sitebuilder</h1>
+  {% endif %}
 {% endblock header %}
+
 {% block body_class %}
   home
 {% endblock body_class %}
+
 {% block content %}
-  <p>This is the homepage. Replace this with your site content.</p>
+  {% if request.user.is_authenticated %}
+    <div class="row mt-5">
+      <div class="col-md-8 offset-md-2">
+        <h2>Dashboard</h2>
+        <p>Welcome back, {{ user.email }}!</p>
+        <p>You are now logged in. Visit your <a href="{% url 'profile' %}">profile page</a> to manage your account.</p>
+      </div>
+    </div>
+  {% else %}
+    <div class="row justify-content-center mt-5">
+      <div class="col-md-6 col-lg-5">
+        <div class="card">
+          <div class="card-body">
+            <h2 class="card-title text-center mb-4">Sign In</h2>
+            {% load allauth account %}
+            {% element form form=form method="post" action="{% url 'account_login' %}" tags="entrance,login" %}
+              {% slot body %}
+                {% csrf_token %}
+                {% element fields form=form unlabeled=True %}
+                {% endelement %}
+                {% if redirect_field_value %}
+                  <input type="hidden"
+                         name="{{ redirect_field_name }}"
+                         value="{{ redirect_field_value }}" />
+                {% endif %}
+              {% endslot %}
+              {% slot actions %}
+                {% element button type="submit" tags="prominent,login" %}
+                  {% trans "Sign In" %}
+                {% endelement %}
+              {% endslot %}
+            {% endelement %}
+            <p class="text-center mt-3">
+              <a href="{% url 'account_reset_password' %}">Forgot Password?</a>
+            </p>
+          </div>
+        </div>
+        <div class="text-center mt-3">
+          {% load socialaccount %}
+          {% if socialaccount_providers %}
+            <p>Or sign in with:</p>
+            {% for provider in socialaccount_providers %}
+              <a href="{% provider_login_url provider.id %}" class="btn btn-outline-dark">
+                Sign in with {{ provider.name }}
+              </a>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
 {% endblock content %}
+
 {% block footer %}
   <small>© Webquills</small>
 {% endblock footer %}

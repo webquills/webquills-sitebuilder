@@ -5,6 +5,7 @@ description = "A Django 5.2 project template"
 requires-python = ">=3.10"
 dependencies = [
     "django>=5.2,<6.0",
+    "django-allauth>=65.0.0",
     "django-environ>=0.11.0",
     "django-extensions>=3.2.3",
     "docutils>=0.21",
