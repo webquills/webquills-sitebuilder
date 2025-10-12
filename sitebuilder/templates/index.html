@@ -40,31 +40,14 @@
         <div class="card">
           <div class="card-body">
             <h2 class="card-title text-center mb-4">Sign In</h2>
-            {% load allauth account %}
-            {% element form form=form method="post" action="{% url 'account_login' %}" tags="entrance,login" %}
-              {% slot body %}
-                {% csrf_token %}
-                {% element fields form=form unlabeled=True %}
-                {% endelement %}
-                {% if redirect_field_value %}
-                  <input type="hidden"
-                         name="{{ redirect_field_name }}"
-                         value="{{ redirect_field_value }}" />
-                {% endif %}
-              {% endslot %}
-              {% slot actions %}
-                {% element button type="submit" tags="prominent,login" %}
-                  {% trans "Sign In" %}
-                {% endelement %}
-              {% endslot %}
-            {% endelement %}
-            <p class="text-center mt-3">
-              <a href="{% url 'account_reset_password' %}">Forgot Password?</a>
+            <p class="text-center">
+              <a href="{% url 'account_login' %}" class="btn btn-primary btn-lg">Go to Login Page</a>
             </p>
           </div>
         </div>
         <div class="text-center mt-3">
           {% load socialaccount %}
+          {% get_providers as socialaccount_providers %}
           {% if socialaccount_providers %}
             <p>Or sign in with:</p>
             {% for provider in socialaccount_providers %}
