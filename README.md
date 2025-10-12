@@ -1,7 +1,7 @@
 # WebQuills Site Builder
 
 This tool provides a web-based front-end to a static site generator (currently on Hugo).
-It gives you a way to create, configure, and edit static site sources in an easy 
+It gives you a way to create, configure, and edit static site sources in an easy
 interface, without having to write raw code or YAML.
 
 ## Development

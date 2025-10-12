@@ -1,5 +1,5 @@
 [project]
-name = "django-project-template"
+name = "sitebuilder"
 version = "5.2.0"
 description = "A Django 5.2 project template"
 requires-python = ">=3.10"
@@ -7,22 +7,21 @@ dependencies = [
     "django>=5.2,<6.0",
     "django-environ>=0.11.0",
     "django-extensions>=3.2.3",
-    "django-rich>=1.10.0",
     "docutils>=0.21",
     "pillow>=10.4.0",
     "rich>=13.8.0",
     "granian>=1.6.0",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-    "coverage>=7.6.0",
-    "django-debug-toolbar>=4.4.0",
-    "ipython>=8.27.0",
-    "ruff>=0.6.0",
-    "tox>=4.18.0",
-    "pre-commit>=3.8.0",
-    "djlint>=1.36.0",
+    "coverage>=7.10.7",
+    "django-debug-toolbar>=6.0.0",
+    "djlint>=1.36.4",
+    "ipython>=8.37.0",
+    "pre-commit>=4.3.0",
+    "ruff>=0.14.0",
+    "tox>=4.31.0",
 ]
 
 [tool.ruff]
@@ -53,3 +52,29 @@ ignore = [
 
 [tool.ruff.lint.isort]
 known-first-party = ["sitebuilder"]
+
+
+[tool.djlint]
+close_void_tags = true
+format_css = true
+format_js = true
+indent = 2
+max_line_length = 119
+profile = "django"
+# https://www.djlint.com/docs/linter/#rules
+# D018 (Django) Internal links should use the {% url ... %} pattern.
+# H017 Void tags should be self closing.
+# H023 Do not use entity references.
+# H030 Consider adding meta description.
+# H031 Consider adding meta keywords.
+# H035 Meta tags should be self closing.
+# T001 Variables should be wrapped in whitespace. Ex: {{ this }}
+# T002 Double quotes should be used in tags.
+ignore = "D018,H023,H030,H031,T002"
+include = "H017,H035"
+
+[tool.djlint.css]
+indent_size = 2
+
+[tool.djlint.js]
+indent_size = 2
