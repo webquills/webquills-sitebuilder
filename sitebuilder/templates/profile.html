@@ -1,10 +1,8 @@
 {% extends "base.html" %}
 {% load i18n %}
-
 {% block title %}
   Profile — WebQuills Site Builder
 {% endblock title %}
-
 {% block header %}
   <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container-fluid">
@@ -16,7 +14,6 @@
     </div>
   </nav>
 {% endblock header %}
-
 {% block content %}
   <div class="row mt-5">
     <div class="col-md-8 offset-md-2">
@@ -24,8 +21,12 @@
       <div class="card mt-4">
         <div class="card-body">
           <h5 class="card-title">Account Information</h5>
-          <p><strong>Email:</strong> {{ user.email }}</p>
-          <p><strong>Member since:</strong> {{ user.date_joined|date:"F j, Y" }}</p>
+          <p>
+            <strong>Email:</strong> {{ user.email }}
+          </p>
+          <p>
+            <strong>Member since:</strong> {{ user.date_joined|date:"F j, Y" }}
+          </p>
         </div>
       </div>
       <div class="card mt-4">

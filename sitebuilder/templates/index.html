@@ -1,10 +1,8 @@
 {% extends "base.html" %}
 {% load i18n %}
-
 {% block title %}
   Home — Webquills Sitebuilder
 {% endblock title %}
-
 {% block header %}
   {% if request.user.is_authenticated %}
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
@@ -20,18 +18,18 @@
     <h1>Welcome to Webquills Sitebuilder</h1>
   {% endif %}
 {% endblock header %}
-
 {% block body_class %}
   home
 {% endblock body_class %}
-
 {% block content %}
   {% if request.user.is_authenticated %}
     <div class="row mt-5">
       <div class="col-md-8 offset-md-2">
         <h2>Dashboard</h2>
         <p>Welcome back, {{ user.email }}!</p>
-        <p>You are now logged in. Visit your <a href="{% url 'profile' %}">profile page</a> to manage your account.</p>
+        <p>
+          You are now logged in. Visit your <a href="{% url 'profile' %}">profile page</a> to manage your account.
+        </p>
       </div>
     </div>
   {% else %}
@@ -51,9 +49,8 @@
           {% if socialaccount_providers %}
             <p>Or sign in with:</p>
             {% for provider in socialaccount_providers %}
-              <a href="{% provider_login_url provider.id %}" class="btn btn-outline-dark">
-                Sign in with {{ provider.name }}
-              </a>
+              <a href="{% provider_login_url provider.id %}"
+                 class="btn btn-outline-dark">Sign in with {{ provider.name }}</a>
             {% endfor %}
           {% endif %}
         </div>
@@ -61,7 +58,6 @@
     </div>
   {% endif %}
 {% endblock content %}
-
 {% block footer %}
   <small>© Webquills</small>
 {% endblock footer %}
