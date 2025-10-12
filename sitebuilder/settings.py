@@ -46,7 +46,7 @@ INSTALLED_APPS = [
     "django.contrib.sites",
     "django.contrib.staticfiles",
 ]
-
+SITE_ID = 1  # For the sites framework
 
 MIDDLEWARE = [
     # https://docs.djangoproject.com/en/5.2/ref/middleware/#django.middleware.security.SecurityMiddleware
@@ -124,10 +124,8 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # Account settings
-ACCOUNT_AUTHENTICATION_METHOD = "email"
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_SIGNUP_EMAIL_ENTER_TWICE = False
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_EMAIL_VERIFICATION = "optional" if DEBUG else "mandatory"
 ACCOUNT_ADAPTER = "sitebuilder.adapters.AccountAdapter"
@@ -408,10 +406,6 @@ if DEBUG:
 #######################################################################################
 if DEBUG:
     ALLOWED_HOSTS = ["*"]
-    # So you don't have to add localhost and/or 127.0.0.1 to your Sites table:
-    # But note: if your Django project only serves one site, you can set this outside
-    # the DEBUG section. See README for details.
-    SITE_ID = 1
 
     if find_spec("debug_toolbar") is not None:
         INSTALLED_APPS.append("debug_toolbar")
