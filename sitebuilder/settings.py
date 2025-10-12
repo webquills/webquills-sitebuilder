@@ -27,6 +27,7 @@ ROOT_URLCONF = f"{PROJECT}.urls"
 
 INSTALLED_APPS = [
     # Add your custom apps here:
+    "sitebuilder",
     # Third party apps:
     "django_extensions",
     # Core Django apps below custom so we can override their templates
@@ -66,6 +67,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "django.template.context_processors.i18n",
                 "django.template.context_processors.media",
                 "django.template.context_processors.static",
             ],
@@ -78,7 +80,6 @@ TEMPLATES = [
 LANGUAGE_CODE = "en-US"
 TIME_ZONE = "America/New_York"
 USE_I18N = True
-USE_L10N = True
 USE_TZ = True
 
 # Default primary key field type
@@ -105,6 +106,16 @@ SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG", default=False)
 ALLOWED_HOSTS = env("ALLOWED_HOSTS", default=[])
 
+# If running behind a reverse proxy that terminates SSL for you, you need to set
+# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# and possibly SECURE_SSL_REDIRECT = True
+# https://docs.djangoproject.com/en/dev/ref/settings/#secure-proxy-ssl-header
+# https://docs.djangoproject.com/en/dev/ref/settings/#secure-ssl-redirect
+SECURE_SSL_REDIRECT = False
+if env.bool("USE_TLS", default=False):
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = True
+
 # Local data written by the app should be kept in one directory for ease of backup.
 # In DEV this can be a subdir of BASE_DIR. In production, for single-server setups
 # this should be a directory outside BASE_DIR that is backed up on a regular basis.
@@ -115,10 +126,10 @@ DATA_DIR = Path(env("DATA_DIR", default=BASE_DIR.joinpath("var")))
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 STATIC_URL = "/static/"
-STATIC_ROOT = DATA_DIR / "static"
+STATIC_ROOT = DATA_DIR / "www" / "static"
 STATIC_ROOT.mkdir(parents=True, exist_ok=True)
 MEDIA_URL = "/media/"
-MEDIA_ROOT = DATA_DIR / "media"
+MEDIA_ROOT = DATA_DIR / "www" / "media"
 MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
 
 # ManifestStaticFilesStorage is recommended in production, to prevent outdated
@@ -149,6 +160,7 @@ DATABASES = {"default": env.db("DATABASE_URL", default=f"sqlite:///{SQLITE_DB}")
 
 # Optimal SQLite configuration
 # https://docs.djangoproject.com/en/5.2/ref/databases/#sqlite-notes
+# https://alldjango.com/articles/definitive-guide-to-using-django-sqlite-in-production
 if DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3":
     # Merge optimal defaults with any existing options
     sqlite_defaults = {
@@ -157,7 +169,8 @@ if DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3":
         "init_command": """
             PRAGMA journal_mode=WAL;
             PRAGMA synchronous=NORMAL;
-            PRAGMA mmap_size=134217728;
+            PRAGMA temp_store=MEMORY;
+            PRAGMA mmap_size=268435456;
             PRAGMA journal_size_limit=27103364;
             PRAGMA cache_size=2000;
         """,
@@ -190,13 +203,143 @@ if find_spec("django_celery_beat") is not None:
 
 
 #######################################################################################
+# SECTION: LOGGING CONFIGURATION
+#######################################################################################
+# A logging configuration suitable for production.
+LOG_DIR = env("LOG_DIR", default=DATA_DIR / "logs")
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,  # Keeps Django's default loggers and handlers
+    "formatters": {
+        "detailed": {
+            "format": "{asctime} [{levelname}] {name}.{module}:{lineno} - {message}",
+            "style": r"{",
+        },
+    },
+    "handlers": {
+        "file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_DIR / "django.log",
+            "maxBytes": 1024 * 1024 * 1024,  # 1 GB
+            "backupCount": 5,
+            "formatter": "detailed",
+        },
+        # A separate log for errors, to be monitored more closely.
+        "errorlog": {
+            "level": "ERROR",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_DIR / "error.log",
+            "maxBytes": 1024 * 1024 * 100,  # 100 MB
+            "backupCount": 5,
+            "formatter": "detailed",
+        },
+        # Django's console handler logs nothing if DEBUG is False, so we redeclare it.
+        # This allows Docker/Kubernetes to capture logs from the console in prod.
+        "console": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "detailed",
+        },
+    },
+    "loggers": {
+        # Django declares the "django" logger, but sends output only to console.
+        "django": {
+            "handlers": ["file", "console", "errorlog"],
+            "level": "INFO",
+            "propagate": False,  # Prevent duplicate logging
+        },
+        # "django.server" is effectively the access log. Django's default sends
+        # it only to console.
+        "django.server": {
+            "handlers": ["file", "console", "errorlog"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        # Log messages from your own project at INFO level.
+        PROJECT: {
+            "handlers": ["file", "console", "errorlog"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        # Third party libraries can be noisy, so only capture warnings/errors.
+        "": {
+            "handlers": ["file", "console", "errorlog"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+    },
+}
+# A separate config for local development, which includes rich logging.
+DEBUG_LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,  # Keeps Django's default loggers and handlers
+    "formatters": {
+        "detailed": {
+            "format": "{asctime} [{levelname}] {name}.{module}:{lineno} - {message}",
+            "style": r"{",
+        },
+        "rich": {
+            "datefmt": "[%X]",
+        },
+    },
+    "handlers": {
+        # In dev, log to a file for debugging, rotate daily for a fresh start.
+        "file": {
+            "level": "INFO",
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": LOG_DIR / "django.log",
+            "when": "midnight",  # Rotate logs daily at midnight
+            "interval": 1,  # Every 1 day
+            "backupCount": 7,  # Keep last 7 days of logs
+            "encoding": "utf-8",
+            "formatter": "detailed",
+        },
+        # Beautiful and useful console output with rich
+        # https://www.willmcgugan.com/blog/tech/post/richer-django-logging/
+        "console": {
+            "level": "DEBUG",
+            "class": "rich.logging.RichHandler",
+            "formatter": "rich",
+        },
+    },
+    "loggers": {
+        # Django declares the "django" logger, but sends output only to console.
+        "django": {
+            "handlers": ["file", "console"],
+            "level": "INFO",
+            "propagate": False,  # Prevent duplicate logging
+        },
+        # "django.server" is effectively the access log. Django's default sends
+        # it only to console.
+        "django.server": {
+            "handlers": ["file", "console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        # Log messages from your own project at DEBUG level.
+        PROJECT: {
+            "handlers": ["file", "console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        # Third party libraries can be noisy, adjust accordingly.
+        "": {
+            "handlers": ["file", "console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
+if DEBUG:
+    LOGGING = DEBUG_LOGGING
+
+#######################################################################################
 # SECTION 2: DEVELOPMENT: If running in a dev environment, loosen restrictions
 # and add debugging tools.
 #######################################################################################
-
-# Rich test output
-TEST_RUNNER = "django_rich.test.RichRunner"
-
 if DEBUG:
     ALLOWED_HOSTS = ["*"]
     # So you don't have to add localhost and/or 127.0.0.1 to your Sites table:
@@ -211,19 +354,3 @@ if DEBUG:
             "127.0.0.1",
         ]
         # See also urls.py for debug_toolbar urls
-
-    # Use rich logging for pretty console logs
-    # https://www.willmcgugan.com/blog/tech/post/richer-django-logging/
-    LOGGING = {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "formatters": {"rich": {"datefmt": "[%X]"}},
-        "handlers": {
-            "console": {
-                "class": "rich.logging.RichHandler",
-                "formatter": "rich",
-                "level": "DEBUG",
-            }
-        },
-        "loggers": {"django": {"handlers": ["console"]}},
-    }
