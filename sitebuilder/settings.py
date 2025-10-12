@@ -127,39 +127,49 @@ AUTHENTICATION_BACKENDS = [
 ACCOUNT_AUTHENTICATION_METHOD = "email"
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_SIGNUP_EMAIL_ENTER_TWICE = False
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_EMAIL_VERIFICATION = "optional" if DEBUG else "mandatory"
 ACCOUNT_ADAPTER = "sitebuilder.adapters.AccountAdapter"
 ACCOUNT_LOGIN_BY_CODE_ENABLED = True
-ACCOUNT_LOGIN_BY_CODE_TIMEOUT = 180  # 3 minutes
+ACCOUNT_LOGIN_BY_CODE_TIMEOUT = 1800  # 30 minutes
 
 # Redirect settings
 LOGIN_REDIRECT_URL = "/profile/"
 ACCOUNT_LOGOUT_REDIRECT_URL = "/"
 
-# MFA settings
-MFA_SUPPORTED_TYPES = ["totp", "webauthn", "recovery_codes"]
+# MFA settings (webauthn to be added later)
+MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
 MFA_PASSKEY_LOGIN_ENABLED = True
 
-# Social account settings
-SOCIALACCOUNT_PROVIDERS = {
-    "github": {
+# Social account settings. We'll start with an empty dict and populate it
+# if we have the necessary environment variables.
+SOCIALACCOUNT_PROVIDERS = {}
+# Don't trust 3rd party emails by default. We'll enable this per-provider as needed
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = False
+# If we trust the provider's email, we can auto-connect social accounts
+# to existing users with the same email address. This prevents users
+# from having to manually connect their social accounts after logging in.
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+# Automatically create user accounts on successful social login
+SOCIALACCOUNT_AUTO_SIGNUP = True
+
+# GitHub social login
+GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID", default="")
+GITHUB_SECRET = env("GITHUB_SECRET", default="")
+if GITHUB_CLIENT_ID and GITHUB_SECRET:
+    SOCIALACCOUNT_PROVIDERS["github"] = {
         "APPS": [
             {
-                "client_id": env("GITHUB_CLIENT_ID", default=""),
-                "secret": env("GITHUB_SECRET", default=""),
+                "client_id": GITHUB_CLIENT_ID,
+                "secret": GITHUB_SECRET,
                 "key": "",
             }
         ],
+        "EMAIL_AUTHENTICATION": True,  # Trust email from GitHub
         "SCOPE": ["user", "repo", "read:org"],
         "VERIFIED_EMAIL": True,
     }
-}
-SOCIALACCOUNT_AUTO_SIGNUP = True
-SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
-SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 
 
 # If running behind a reverse proxy that terminates SSL for you, you need to set
