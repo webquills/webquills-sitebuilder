@@ -18,12 +18,14 @@
             <a href="{{ change_password_url_ }}">{% trans "Change Password" %}</a>
           </li>
         {% endif %}
+        {% comment %} Temporarily hiding, will integrate GitHub later.
         {% url 'socialaccount_connections' as connections_url_ %}
         {% if connections_url_ %}
           <li class="list-group-item">
             <a href="{{ connections_url_ }}">{% trans "Account Connections" %}</a>
           </li>
         {% endif %}
+        {% endcomment %}
         {% url 'mfa_index' as mfa_url_ %}
         {% if mfa_url_ %}
           <li class="list-group-item">
