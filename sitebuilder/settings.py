@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     # Third party apps:
     "crispy_forms",
     "crispy_bootstrap5",
+    "django_bootstrap5",
     "django_extensions",
     # django-allauth
     "allauth",
@@ -277,6 +278,26 @@ vars().update(EMAIL_CONFIG)
 # https://django-crispy-forms.readthedocs.io/en/latest/install.html
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
+
+BOOTSTRAP5 = {
+    # The complete URL to the Bootstrap CSS file.
+    # Note that a URL can be either a string
+    # ("https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css"),
+    # or a dict with keys `url`, `integrity` and `crossorigin` like the default value below.
+    "css_url": {
+        "url": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css",
+        "integrity": "sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB",
+        "crossorigin": "anonymous",
+    },
+    # The complete URL to the Bootstrap bundle JavaScript file.
+    "javascript_url": {
+        "url": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js",
+        "integrity": "sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI",
+        "crossorigin": "anonymous",
+    },
+    # The complete URL to the Bootstrap CSS theme file (None means no theme).
+    "theme_url": None,
+}
 
 #######################################################################################
 # SECTION: Celery configuration

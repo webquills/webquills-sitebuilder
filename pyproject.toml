@@ -14,6 +14,7 @@ dependencies = [
     "granian>=1.6.0",
     "django-crispy-forms>=2.4",
     "crispy-bootstrap5>=2025.6",
+    "django-bootstrap5>=25.2",
 ]
 
 [dependency-groups]
