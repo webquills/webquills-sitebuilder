@@ -40,7 +40,7 @@ class HomePageViewTests(TestCase):
         self.client.login(username="testuser", password="testpass123")
 
         response = self.client.get(self.home_url)
-        self.assertContains(response, "Logout")
+        self.assertContains(response, "Sign out")
         self.assertContains(response, "/accounts/logout/")
 
 
