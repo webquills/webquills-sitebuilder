@@ -1,20 +1,20 @@
 {% extends "base.html" %}
 {% load i18n %}
 {% block title %}
-  Home — WebQuills Site Builder
+  {% translate "Home" %}
 {% endblock title %}
 {% block body_class %}
   home
 {% endblock body_class %}
 {% block content %}
-  <h1>Welcome to WebQuills Site Builder</h1>
+  <h1>{% translate "Welcome to WebQuills Site Builder" %}</h1>
   {% if request.user.is_authenticated %}
     <div class="row mt-5">
       <div class="col-md-8 offset-md-2">
-        <h2>Dashboard</h2>
-        <p>Welcome back, {{ user.email }}!</p>
+        <h2>{% translate "Dashboard" %}</h2>
+        <p>{% translate "Welcome back, {{ user.email }}!" %}</p>
         <p>
-          You are now logged in. Visit your <a href="{% url 'profile' %}">profile page</a> to manage your account.
+          {% translate "You are now logged in. Visit your" %} <a href="{% url 'profile' %}">{% translate "profile page" %}</a> {% translate "to manage your account." %}
         </p>
       </div>
     </div>
@@ -23,9 +23,9 @@
       <div class="col-md-6 col-lg-5">
         <div class="card">
           <div class="card-body">
-            <h2 class="card-title text-center mb-4">Sign In</h2>
+            <h2 class="card-title text-center mb-4">{% translate "Sign In" %}</h2>
             <p class="text-center">
-              <a href="{% url 'account_login' %}" class="btn btn-primary btn-lg">Go to Login Page</a>
+              <a href="{% url 'account_login' %}" class="btn btn-primary btn-lg">{% translate "Go to Login Page" %}</a>
             </p>
           </div>
         </div>
@@ -33,10 +33,10 @@
           {% load socialaccount %}
           {% get_providers as socialaccount_providers %}
           {% if socialaccount_providers %}
-            <p>Or sign in with:</p>
+            <p>{% translate "Or sign in with:" %}</p>
             {% for provider in socialaccount_providers %}
               <a href="{% provider_login_url provider.id %}"
-                 class="btn btn-outline-dark">Sign in with {{ provider.name }}</a>
+                 class="btn btn-outline-dark">{% translate "Sign in with" %} {{ provider.name }}</a>
             {% endfor %}
           {% endif %}
         </div>

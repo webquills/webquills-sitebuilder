@@ -1,7 +1,7 @@
 {% extends "account/base_manage.html" %}
 {% load i18n %}
 {% block title %}
-  Profile — WebQuills Site Builder
+  {% translate "Your Profile" %}
 {% endblock title %}
 {% block header %}
   {{ block.super }}
@@ -9,23 +9,23 @@
 {% block content %}
   <div class="row mt-5">
     <div class="col-md-8 offset-md-2">
-      <h1>Your Profile</h1>
+      <h1>{% translate "Your Profile" %}</h1>
       <div class="card mt-4">
         <div class="card-body">
-          <h5 class="card-title">Account Information</h5>
+          <h5 class="card-title">{% translate "Account Information" %}</h5>
           <p>
-            <strong>Email:</strong> {{ user.email }}
+            <strong>{% translate "Email:" %}</strong> {{ user.email }}
           </p>
           <p>
-            <strong>Member since:</strong> {{ user.date_joined|date:"F j, Y" }}
+            <strong>{% translate "Member since:" %}</strong> {{ user.date_joined|date:"F j, Y" }}
           </p>
         </div>
       </div>
       <div class="card mt-4">
         <div class="card-body">
-          <h5 class="card-title">Security</h5>
-          <a href="{% url 'mfa_activate_totp' %}" class="btn btn-primary">Enable Two-Factor Authentication</a>
-          <a href="{% url 'account_email' %}" class="btn btn-secondary">Manage Email Addresses</a>
+          <h5 class="card-title">{% translate "Security" %}</h5>
+          <a href="{% url 'mfa_activate_totp' %}" class="btn btn-primary">{% translate "Enable Two-Factor Authentication" %}</a>
+          <a href="{% url 'account_email' %}" class="btn btn-secondary">{% translate "Manage Email Addresses" %}</a>
         </div>
       </div>
     </div>

@@ -8,9 +8,9 @@
       {% block title %}
         {# head_title block is for compat with allauth #}
         {% block head_title %}
-          WebQuills Site Builder
         {% endblock head_title %}
       {% endblock title %}
+      — {% translate "WebQuills Site Builder" %}
     </title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     {% if description %}<meta name="description" content="{{ description }}" />{% endif %}
@@ -30,9 +30,9 @@
             {% if request.user.is_authenticated %}
               <nav class="navbar navbar-expand-lg navbar-light bg-light">
                 <div class="container-fluid">
-                  <a class="navbar-brand" href="{% url 'home' %}">WebQuills Site Builder</a>
+                  <a class="navbar-brand" href="{% url 'home' %}">{% translate "WebQuills Site Builder" %}</a>
                   <div class="navbar-nav ms-auto">
-                    <a class="btn btn-primary me-2" href="{% url 'profile' %}">Profile</a>
+                    <a class="btn btn-primary me-2" href="{% url 'profile' %}">{% translate "Profile" %}</a>
                     <a class="btn btn-outline-secondary" href="{% url 'account_logout' %}">{% trans "Sign out" %}</a>
                   </div>
                 </div>
@@ -40,10 +40,10 @@
             {% else %}
               <nav class="navbar navbar-expand-lg navbar-light bg-light">
                 <div class="container-fluid">
-                  <a class="navbar-brand" href="{% url 'home' %}">WebQuills Site Builder</a>
+                  <a class="navbar-brand" href="{% url 'home' %}">{% translate "WebQuills Site Builder" %}</a>
                   <div class="navbar-nav ms-auto">
-                    <a class="btn btn-outline-primary" href="{% url 'account_login' %}">{% trans "Sign In" %}</a>
-                    <a class="btn btn-primary ms-2" href="{% url 'account_signup' %}">{% trans "Sign Up" %}</a>
+                    <a class="btn btn-outline-primary" href="{% url 'account_login' %}">{% translate "Sign In" %}</a>
+                    <a class="btn btn-primary ms-2" href="{% url 'account_signup' %}">{% translate "Sign Up" %}</a>
                   </div>
                 </div>
               </nav>
@@ -58,7 +58,7 @@
             {% bootstrap_messages %}
           {% endblock precontent %}
           {% block content %}
-            MAIN CONTENT
+            {% comment %} MAIN CONTENT {% endcomment %}
           {% endblock content %}
           {% block postcontent %}
           {% endblock postcontent %}
@@ -69,7 +69,6 @@
         <footer class="page_footer container mt-5 mb-3 text-center border-top pt-3">
           {# footer block is for compat with allauth #}
           {% block footer %}
-            <small>© Webquills</small>
           {% endblock footer %}
         </footer>
       {% endblock footer_outer %}
