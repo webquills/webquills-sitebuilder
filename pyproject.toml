@@ -8,6 +8,7 @@ dependencies = [
     "django-allauth[socialaccount,mfa]>=65.12.0",
     "django-environ>=0.11.0",
     "django-extensions>=3.2.3",
+    "django-redis>=5.4.0",
     "django-rq>=3.1.0",
     "docutils>=0.21",
     "pillow>=10.4.0",
@@ -19,6 +20,14 @@ dependencies = [
     "crispy-bootstrap5>=2025.6",
     "django-bootstrap5>=25.2",
 ]
+
+[build-system]
+requires = ["setuptools>=40.8.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["sitebuilder*"]
+exclude = ["tests*", "var*", "docker*"]
 
 [dependency-groups]
 dev = [
