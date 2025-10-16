@@ -22,7 +22,7 @@ Architecture & conventions (important for code changes):
 - Auth: Uses `django-allauth` with a custom adapter at `sitebuilder/adapters.py`.
 - Templates: There is no top-level templates directory. Project templates are stored in the `sitebuilder/templates/` folder. Formatting follows djlint/ruff config in `pyproject.toml`.
 - URLS: All URLs are defined in `sitebuilder/urls.py`. All patterns should be named. Use `reverse('name')` in code and `{% url 'name' %}` in templates.
-- Internationalization: Use Django i18n: Mark user-visible strings in templates and Python code (including model and field `verbose_name`) for translation. Locale files live under `sitebuilder/locale/` (eventually).
+- Internationalization: Use Django i18n: Mark user-visible strings in templates and Python code (including model and field `verbose_name`) for translation. Locale files live under `sitebuilder/locale/`.
 - Accessibility: Site must conform to WCAG 2.1 AA. Follow best practices for HTML structure, ARIA roles, and keyboard navigation. Ensure all interactive elements are accessible and provide appropriate alt text for images.
 
 Data & storage patterns:
