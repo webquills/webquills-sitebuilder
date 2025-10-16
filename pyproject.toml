@@ -12,6 +12,9 @@ dependencies = [
     "pillow>=10.4.0",
     "rich>=13.8.0",
     "granian>=1.6.0",
+    "django-crispy-forms>=2.4",
+    "crispy-bootstrap5>=2025.6",
+    "django-bootstrap5>=25.2",
 ]
 
 [dependency-groups]
@@ -54,9 +57,9 @@ ignore = [
 [tool.ruff.lint.isort]
 known-first-party = ["sitebuilder"]
 
-
 [tool.djlint]
 close_void_tags = true
+custom_blocks = "element,slot"
 format_css = true
 format_js = true
 indent = 2

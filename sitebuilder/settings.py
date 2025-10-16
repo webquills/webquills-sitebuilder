@@ -29,6 +29,9 @@ INSTALLED_APPS = [
     # Add your custom apps here:
     "sitebuilder",
     # Third party apps:
+    "crispy_forms",
+    "crispy_bootstrap5",
+    "django_bootstrap5",
     "django_extensions",
     # django-allauth
     "allauth",
@@ -96,7 +99,7 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 #######################################################################################
-# SECTION 1: Settings that can (and maybe should) differ between environments
+# SECTION: Settings that can (and maybe should) differ between environments
 #######################################################################################
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -115,6 +118,9 @@ SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG", default=False)
 ALLOWED_HOSTS = env("ALLOWED_HOSTS", default=[])
 
+#######################################################################################
+# SECTION: Authentication and security settings
+#######################################################################################
 # django-allauth configuration
 # https://docs.allauth.org/en/latest/
 AUTHENTICATION_BACKENDS = [
@@ -244,15 +250,58 @@ if DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3":
     existing_options = DATABASES["default"].get("OPTIONS", {})
     DATABASES["default"]["OPTIONS"] = {**sqlite_defaults, **existing_options}
 
-CACHES = {"default": env.cache("CACHE_URL", default="locmemcache://")}
+# If there is a REDIS_URL in the environment, use it for caching.
+# Otherwise default to local memory caching.
+if env("REDIS_URL", default=""):
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": env("REDIS_URL"),
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            },
+        }
+    }
+else:
+    # Default to local memory caching, which is not suitable for production.
+    CACHES = {"default": env.cache("CACHE_URL", default="locmemcache://")}
 
 # Email settings don't use a dict. Add to local vars instead.
 # https://django-environ.readthedocs.io/en/latest/#email-settings
 EMAIL_CONFIG = env.email_url("EMAIL_URL", default="consolemail://")
 vars().update(EMAIL_CONFIG)
 
+#######################################################################################
+# SECTION: Configuration for third party apps
+#######################################################################################
+# django-crispy-forms settings
+# https://django-crispy-forms.readthedocs.io/en/latest/install.html
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
 
-# CELERY settings
+BOOTSTRAP5 = {
+    # The complete URL to the Bootstrap CSS file.
+    # Note that a URL can be either a string
+    # ("https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css"),
+    # or a dict with keys `url`, `integrity` and `crossorigin` like the default value below.
+    "css_url": {
+        "url": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css",
+        "integrity": "sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB",
+        "crossorigin": "anonymous",
+    },
+    # The complete URL to the Bootstrap bundle JavaScript file.
+    "javascript_url": {
+        "url": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js",
+        "integrity": "sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI",
+        "crossorigin": "anonymous",
+    },
+    # The complete URL to the Bootstrap CSS theme file (None means no theme).
+    "theme_url": None,
+}
+
+#######################################################################################
+# SECTION: Celery configuration
+#######################################################################################
 # If the environment has not provided settings, assume there is no broker
 # and run celery tasks in-process. This means you MUST provide
 # CELERY_TASK_ALWAYS_EAGER=False in your environment to actually use celery.
@@ -266,7 +315,6 @@ CELERY_TIME_ZONE = TIME_ZONE
 if find_spec("django_celery_beat") is not None:
     CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
     INSTALLED_APPS.append("django_celery_beat")
-
 
 #######################################################################################
 # SECTION: LOGGING CONFIGURATION
@@ -403,7 +451,7 @@ if DEBUG:
     LOGGING = DEBUG_LOGGING
 
 #######################################################################################
-# SECTION 2: DEVELOPMENT: If running in a dev environment, loosen restrictions
+# SECTION: DEVELOPMENT: If running in a dev environment, loosen restrictions
 # and add debugging tools.
 #######################################################################################
 if DEBUG:
