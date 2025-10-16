@@ -1,0 +1,143 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: webquills-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      DJANGO_DB_NAME: ${DJANGO_DB_NAME}
+      DJANGO_DB_USER: ${DJANGO_DB_USER}
+      DJANGO_DB_PASSWORD: ${DJANGO_DB_PASSWORD}
+      GITEA_DB_NAME: ${GITEA_DB_NAME}
+      GITEA_DB_USER: ${GITEA_DB_USER}
+      GITEA_DB_PASSWORD: ${GITEA_DB_PASSWORD}
+    volumes:
+      - ${DATA_DIR}/postgres:/var/lib/postgresql/data
+      - ./docker/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - webquills
+
+  redis:
+    image: redis:7-alpine
+    container_name: webquills-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - ${DATA_DIR}/redis:/data
+    ports:
+      - "${REDIS_PORT}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - webquills
+
+  gitea:
+    image: gitea/gitea:1.22
+    container_name: webquills-gitea
+    environment:
+      USER_UID: ${UID}
+      USER_GID: ${GID}
+      GITEA__database__DB_TYPE: postgres
+      GITEA__database__HOST: ${POSTGRES_HOST}:${POSTGRES_PORT}
+      GITEA__database__NAME: ${GITEA_DB_NAME}
+      GITEA__database__USER: ${GITEA_DB_USER}
+      GITEA__database__PASSWD: ${GITEA_DB_PASSWORD}
+      GITEA__server__ROOT_URL: ${GITEA_ROOT_URL}
+      GITEA__server__HTTP_PORT: ${GITEA_HTTP_PORT}
+      GITEA__server__SSH_PORT: ${GITEA_SSH_PORT}
+      GITEA__service__DISABLE_REGISTRATION: ${GITEA_DISABLE_REGISTRATION}
+    volumes:
+      - ${DATA_DIR}/gitea:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "${GITEA_HTTP_PORT}:3000"
+      - "${GITEA_SSH_PORT}:22"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    networks:
+      - webquills
+
+  django:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${DJANGO_IMAGE}
+    container_name: webquills-django
+    environment:
+      DEBUG: ${DEBUG}
+      SECRET_KEY: ${SECRET_KEY}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_DB: ${REDIS_DB}
+      DATA_DIR: /app/var
+      ALLOWED_HOSTS: "*"
+    volumes:
+      - .:/app
+      - ${DATA_DIR}:/app/var
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: python manage.py runserver 0.0.0.0:8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - webquills
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${DJANGO_IMAGE}
+    container_name: webquills-worker
+    environment:
+      DEBUG: ${DEBUG}
+      SECRET_KEY: ${SECRET_KEY}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_DB: ${REDIS_DB}
+      DATA_DIR: /app/var
+    volumes:
+      - .:/app
+      - ${DATA_DIR}:/app/var
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: python manage.py rqworker default
+    networks:
+      - webquills
+
+networks:
+  webquills:
+    driver: bridge
