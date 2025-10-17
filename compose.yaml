@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: webquills-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -13,7 +13,8 @@ services:
       GITEA_DB_USER: ${GITEA_DB_USER}
       GITEA_DB_PASSWORD: ${GITEA_DB_PASSWORD}
     volumes:
-      - ${DATA_DIR}/postgres:/var/lib/postgresql/data
+      # NOTE: Mount location changed in PostgreSQL 18 (was /var/lib/postgresql/data).
+      - ${DATA_DIR}/postgres:/var/lib/postgresql
       - ./docker/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
     ports:
       - "${POSTGRES_PORT}:5432"
@@ -145,7 +146,7 @@ services:
     command: >
       sh -c "
         pip install -e . &&
-        python manage.py rqworker default
+        python manage.py rqworker --with-scheduler default
       "
     networks:
       - webquills

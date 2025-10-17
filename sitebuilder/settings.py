@@ -324,26 +324,10 @@ if find_spec("django_celery_beat") is not None:
 # Configure Redis Queue for background job processing
 RQ_QUEUES = {
     "default": {
-        "HOST": env("REDIS_HOST", default="localhost"),
-        "PORT": env.int("REDIS_PORT", default=6379),
-        "DB": env.int("REDIS_DB", default=0),
-        "PASSWORD": env("REDIS_PASSWORD", default=""),
+        "USE_REDIS_CACHE": "default",
         "DEFAULT_TIMEOUT": 360,
     },
 }
-# If REDIS_URL is set, parse it and override the default queue config
-if env("REDIS_URL", default=""):
-    from urllib.parse import urlparse
-
-    redis_url = urlparse(env("REDIS_URL"))
-    RQ_QUEUES["default"].update(
-        {
-            "HOST": redis_url.hostname or "localhost",
-            "PORT": redis_url.port or 6379,
-            "DB": int(redis_url.path.lstrip("/")) if redis_url.path else 0,
-            "PASSWORD": redis_url.password or "",
-        }
-    )
 
 #######################################################################################
 # SECTION: LOGGING CONFIGURATION
