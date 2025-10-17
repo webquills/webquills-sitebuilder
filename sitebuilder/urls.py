@@ -21,10 +21,10 @@ from django.urls import include, path
 from sitebuilder.views import HomePageView, ProfileView
 
 urlpatterns = [
+    path("admin/rq/", include("django_rq.urls")),
     path("admin/doc/", include("django.contrib.admindocs.urls")),
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),
-    path("django-rq/", include("django_rq.urls")),
     path("profile/", ProfileView.as_view(), name="profile"),
     path("", HomePageView.as_view(), name="home"),
 ]
