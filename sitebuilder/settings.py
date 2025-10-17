@@ -264,6 +264,7 @@ if env("REDIS_URL", default=""):
             },
         }
     }
+    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 else:
     # Default to local memory caching, which is not suitable for production.
     CACHES = {"default": env.cache("CACHE_URL", default="locmemcache://")}
