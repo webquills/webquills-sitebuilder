@@ -12,6 +12,7 @@ See also https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 """
 
+import sys
 from importlib.util import find_spec
 from pathlib import Path
 
@@ -107,7 +108,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Get environment settings
-env = environ.Env()
+env = environ.Env(interpolate=True)
 DOTENV = BASE_DIR / ".env"
 if DOTENV.exists() and not env("IGNORE_ENV_FILE", default=False):
     environ.Env.read_env(DOTENV)
@@ -485,10 +486,14 @@ if DEBUG:
 if DEBUG:
     ALLOWED_HOSTS = ["*"]
 
-    if find_spec("debug_toolbar") is not None:
+    if find_spec("debug_toolbar") is not None and "test" not in sys.argv:
         INSTALLED_APPS.append("debug_toolbar")
         MIDDLEWARE.append("debug_toolbar.middleware.DebugToolbarMiddleware")
-        INTERNAL_IPS = [
-            "127.0.0.1",
-        ]
+        INTERNAL_IPS = ["127.0.0.1"]
+        # The documented way to do this in docker is to use
+        # debug_toolbar.middleware.show_toolbar_with_docker, but that isn't working for
+        # me. If DEBUG is True and we're not testing, just show the toolbar always.
+        DEBUG_TOOLBAR_CONFIG = {
+            "SHOW_TOOLBAR_CALLBACK": lambda request: True,
+        }
         # See also urls.py for debug_toolbar urls
