@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     libpq-dev \
     build-essential \
+    openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
