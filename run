@@ -29,10 +29,10 @@ function manage { ## Run Django manage.py commands (connects to running containe
     # Check if Django container is running
     if docker ps --format '{{.Names}}' | grep -q '^webquills-django$'; then
         # Container is running, exec into it
-        docker exec -it webquills-django python manage.py "$@"
+        docker exec -it webquills-django uv run python manage.py "$@"
     else
         # Container is not running, start a new one
-        docker compose run --rm django python manage.py "$@"
+        docker compose run --rm django uv run python manage.py "$@"
     fi
 }
 
@@ -60,9 +60,14 @@ function nuke { ## Remove docker compose volumes and delete DATA_DIR (destructiv
         fi
         DATA_DIR_ENV=${DATA_DIR:-}
     fi
-
-    echo "This will permanently destroy all local data for this project."
-    echo "Docker volumes to remove: webquills_postgres_data webquills_redis_data webquills_gitea_data"
+    echo "#######################################################################"
+    echo "This will PERMANENTLY DESTROY ALL LOCAL DATA for this project."
+    echo "#######################################################################"
+    echo "Docker volumes to remove:"
+    echo " - webquills_postgres_data"
+    echo " - webquills_redis_data"
+    echo " - webquills_gitea_data"
+    echo " - webquills_venv"
     if [[ -n "$DATA_DIR_ENV" ]]; then
         echo "Local DATA_DIR to delete: $DATA_DIR_ENV"
     else
@@ -80,7 +85,7 @@ function nuke { ## Remove docker compose volumes and delete DATA_DIR (destructiv
 
     # remove named volumes (ignore errors)
     echo "Removing docker volumes..."
-    docker volume rm webquills_postgres_data webquills_redis_data webquills_gitea_data || true
+    docker volume rm webquills-sitebuilder_webquills_gitea_data webquills-sitebuilder_webquills_postgres_data webquills-sitebuilder_webquills_redis_data webquills-sitebuilder_webquills_venv || true
 
     # remove DATA_DIR contents if it's inside the project dir for safety
     if [[ -n "$DATA_DIR_ENV" ]]; then
