@@ -44,6 +44,9 @@ The Docker setup includes:
 - Gitea for Git repository hosting
 - Django web application with hot-reload
 - Background worker (django-rq) for async tasks
+- The image base is `ghcr.io/astral-sh/uv:python3.12-trixie-slim` which includes `uv` tooling and a non-root `appuser`.
+- The project is mounted at `/workspace` inside the container (instead of `/app`).
+- The compose file declares a `webquills_venv` volume that is mounted into `/workspace/.venv`. This prevents accidental reuse of a host `.venv` (which is platform-specific) and avoids binary mismatches between host and container.
 
 ## Development (Without Docker)
 

@@ -46,7 +46,6 @@ services:
   gitea:
     image: gitea/gitea:1.22
     container_name: webquills-gitea
-    user: "${UID:-1000}:${GID:-1000}"
     environment:
       USER_UID: ${UID}
       USER_GID: ${GID}
@@ -93,11 +92,14 @@ services:
       REDIS_HOST: ${REDIS_HOST}
       REDIS_PORT: ${REDIS_PORT}
       REDIS_DB: ${REDIS_DB}
-      DATA_DIR: /app/var
       ALLOWED_HOSTS: "*"
+      DATA_DIR: /workspace/var
     volumes:
-      - .:/app
-      - ${DATA_DIR}:/app/var
+      # Mount project source into the container workspace
+      - .:/workspace
+      # Keep the container's virtualenv separate from host by mounting a volume
+      - webquills_venv:/workspace/.venv
+      - ${DATA_DIR}:/workspace/var
     ports:
       - "8000:8000"
     depends_on:
@@ -107,10 +109,8 @@ services:
         condition: service_healthy
     command: >
       sh -c "
-        pip install --upgrade pip &&
-        pip install --group dev -e . &&
-        python manage.py migrate &&
-        python manage.py runserver 0.0.0.0:8000
+        uv run python manage.py migrate &&
+        uv run python manage.py runserver 0.0.0.0:8000
       "
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
@@ -136,10 +136,11 @@ services:
       REDIS_HOST: ${REDIS_HOST}
       REDIS_PORT: ${REDIS_PORT}
       REDIS_DB: ${REDIS_DB}
-      DATA_DIR: /app/var
+      DATA_DIR: /workspace/var
     volumes:
-      - .:/app
-      - ${DATA_DIR}:/app/var
+      - .:/workspace
+      - webquills_venv:/workspace/.venv
+      - ${DATA_DIR}:/workspace/var
     depends_on:
       postgres:
         condition: service_healthy
@@ -149,8 +150,8 @@ services:
         condition: service_started
     command: >
       sh -c "
-        pip install -e . &&
-        python manage.py rqworker --with-scheduler default
+        uv sync &&
+        uv run python manage.py rqworker --with-scheduler default
       "
     networks:
       - webquills
@@ -165,4 +166,6 @@ volumes:
   webquills_redis_data:
     driver: local
   webquills_gitea_data:
+    driver: local
+  webquills_venv:
     driver: local
