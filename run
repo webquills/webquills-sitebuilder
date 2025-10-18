@@ -36,6 +36,75 @@ function manage { ## Run Django manage.py commands (connects to running containe
     fi
 }
 
+function _confirm_yes_no {
+    local prompt="$1"
+    local default=${2:-no}
+    if [[ "$NONINTERACTIVE" == "1" || "$AUTO_YES" == "1" ]]; then
+        return 0
+    fi
+    read -p "$prompt [y/N]: " ans
+    case "$ans" in
+        [Yy]|[Yy][Ee][Ss]) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+function nuke { ## Remove docker compose volumes and delete DATA_DIR (destructive)
+    # Safety: determine DATA_DIR from environment or example.env
+    DATA_DIR_ENV=${DATA_DIR:-}
+    if [[ -z "$DATA_DIR_ENV" ]]; then
+        # try to source .env or example.env
+        if [[ -f .env ]]; then
+            # shellcheck disable=SC1091
+            source .env
+        fi
+        DATA_DIR_ENV=${DATA_DIR:-}
+    fi
+
+    echo "This will permanently destroy all local data for this project."
+    echo "Docker volumes to remove: webquills_postgres_data webquills_redis_data webquills_gitea_data"
+    if [[ -n "$DATA_DIR_ENV" ]]; then
+        echo "Local DATA_DIR to delete: $DATA_DIR_ENV"
+    else
+        echo "Warning: DATA_DIR could not be determined from environment; skipping host file deletion."
+    fi
+
+    if ! _confirm_yes_no "Are you sure you want to continue?"; then
+        echo "Aborting nuke. No changes made."
+        return 1
+    fi
+
+    # stop compose
+    echo "Stopping containers..."
+    docker compose down || true
+
+    # remove named volumes (ignore errors)
+    echo "Removing docker volumes..."
+    docker volume rm webquills_postgres_data webquills_redis_data webquills_gitea_data || true
+
+    # remove DATA_DIR contents if it's inside the project dir for safety
+    if [[ -n "$DATA_DIR_ENV" ]]; then
+        # Resolve absolute paths
+        DATA_DIR_ABS=$(cd "$DATA_DIR_ENV" 2>/dev/null && pwd || echo "")
+        BASE_DIR_ABS="$BASE_DIR"
+        if [[ -z "$DATA_DIR_ABS" ]]; then
+            echo "Could not resolve DATA_DIR path '$DATA_DIR_ENV'; skipping host delete."
+        else
+            # Ensure DATA_DIR is within the project directory to avoid catastrophic deletes
+            if [[ "$DATA_DIR_ABS" == "$BASE_DIR_ABS"* ]]; then
+                echo "Deleting contents of $DATA_DIR_ABS..."
+                rm -rf "$DATA_DIR_ABS"/*
+                echo "Deleted contents of $DATA_DIR_ABS."
+            else
+                echo "Refusing to delete '$DATA_DIR_ABS' because it is outside the project directory ($BASE_DIR_ABS)."
+                echo "If you really want to remove it, please run the command manually."
+            fi
+        fi
+    fi
+
+    echo "Nuke complete."
+}
+
 #######################################################################
 # Finally, execute it.
 #######################################################################
