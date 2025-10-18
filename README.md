@@ -4,9 +4,53 @@ This tool provides a web-based front-end to a static site generator (currently o
 It gives you a way to create, configure, and edit static site sources in an easy
 interface, without having to write raw code or YAML.
 
-## Development
+## Quick Start with Docker (Recommended)
 
-After checking out the code, set up your development environment:
+The easiest way to get started is with Docker Compose, which provides a complete development stack including PostgreSQL, Redis, Gitea, Django, and a background worker.
+
+1. Clone the repository and copy the example environment file:
+   ```bash
+   cp example.env .env
+   ```
+
+2. Start all services:
+   ```bash
+   docker compose up --build
+   ```
+
+3. Access the services:
+   - **Django app**: http://localhost:8000/
+   - **Gitea**: http://localhost:3000/
+   - **Gitea SSH**: `ssh://git@localhost:2222`
+   - **PostgreSQL**: `localhost:5432` (databases: `webquills` and `gitea`)
+   - **Redis**: `localhost:6379`
+
+4. Run Django management commands:
+   ```bash
+   ./run manage <command> [args...]
+   # Examples:
+   ./run manage createsuperuser
+   ./run manage shell
+   ```
+
+5. Stop all services:
+   ```bash
+   docker compose down
+   ```
+
+The Docker setup includes:
+- PostgreSQL with two databases (`webquills` for Django, `gitea` for Gitea)
+- Redis for Django cache and job queue
+- Gitea for Git repository hosting
+- Django web application with hot-reload
+- Background worker (django-rq) for async tasks
+- The image base is `ghcr.io/astral-sh/uv:python3.12-trixie-slim` which includes `uv` tooling and a non-root `appuser`.
+- The project is mounted at `/workspace` inside the container (instead of `/app`).
+- The compose file declares a `webquills_venv` volume that is mounted into `/workspace/.venv`. This prevents accidental reuse of a host `.venv` (which is platform-specific) and avoids binary mismatches between host and container.
+
+## Development (Without Docker)
+
+If you prefer to run services locally without Docker:
 
 1. Install [uv](https://docs.astral.sh/uv/):
    ```bash

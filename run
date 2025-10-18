@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+
+# Based on the Taskfile format from https://github.com/adriancooney/Taskfile
+# Please keep functions sorted alphabetically for ease of editing.
+
+# A useful path mod
+PATH=./node_modules/.bin:$PATH
+
+#######################################################################
+# Set some commonly used globals
+#######################################################################
+BASE_DIR=$(cd `dirname $0`; pwd)
+PROJECT_NAME=`basename "$BASE_DIR"`
+
+#######################################################################
+# Function declarations
+#######################################################################
+function help { ## Display usage for this application
+    echo "$0 <task> <args>"
+    echo "Tasks:"
+    # compgen -A function | cat -n
+    grep -E '^function [a-zA-Z_-]+ {.*?## .*$' $0 | \
+        sed -e 's/function //' | \
+        sort | \
+        awk 'BEGIN {FS = "{.*?## "}; {printf "\033[93m%-30s\033[92m %s\033[0m\n", $1, $2}'
+}
+
+function manage { ## Run Django manage.py commands (connects to running container or starts new one)
+    # Check if Django container is running
+    if docker ps --format '{{.Names}}' | grep -q '^webquills-django$'; then
+        # Container is running, exec into it
+        docker exec -it webquills-django uv run python manage.py "$@"
+    else
+        # Container is not running, start a new one
+        docker compose run --rm django uv run python manage.py "$@"
+    fi
+}
+
+function _confirm_yes_no {
+    local prompt="$1"
+    local default=${2:-no}
+    if [[ "$NONINTERACTIVE" == "1" || "$AUTO_YES" == "1" ]]; then
+        return 0
+    fi
+    read -p "$prompt [y/N]: " ans
+    case "$ans" in
+        [Yy]|[Yy][Ee][Ss]) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+function nuke { ## Remove docker compose volumes and delete DATA_DIR (destructive)
+    # Safety: determine DATA_DIR from environment or example.env
+    DATA_DIR_ENV=${DATA_DIR:-}
+    if [[ -z "$DATA_DIR_ENV" ]]; then
+        # try to source .env or example.env
+        if [[ -f .env ]]; then
+            # shellcheck disable=SC1091
+            source .env
+        fi
+        DATA_DIR_ENV=${DATA_DIR:-}
+    fi
+    echo "#######################################################################"
+    echo "This will PERMANENTLY DESTROY ALL LOCAL DATA for this project."
+    echo "#######################################################################"
+    echo "Docker volumes to remove:"
+    echo " - webquills_postgres_data"
+    echo " - webquills_redis_data"
+    echo " - webquills_gitea_data"
+    echo " - webquills_venv"
+    if [[ -n "$DATA_DIR_ENV" ]]; then
+        echo "Local DATA_DIR to delete: $DATA_DIR_ENV"
+    else
+        echo "Warning: DATA_DIR could not be determined from environment; skipping host file deletion."
+    fi
+
+    if ! _confirm_yes_no "Are you sure you want to continue?"; then
+        echo "Aborting nuke. No changes made."
+        return 1
+    fi
+
+    # stop compose
+    echo "Stopping containers..."
+    docker compose down || true
+
+    # remove named volumes (ignore errors)
+    echo "Removing docker volumes..."
+    docker volume rm webquills-sitebuilder_webquills_gitea_data webquills-sitebuilder_webquills_postgres_data webquills-sitebuilder_webquills_redis_data webquills-sitebuilder_webquills_venv || true
+
+    # remove DATA_DIR contents if it's inside the project dir for safety
+    if [[ -n "$DATA_DIR_ENV" ]]; then
+        # Resolve absolute paths
+        DATA_DIR_ABS=$(cd "$DATA_DIR_ENV" 2>/dev/null && pwd || echo "")
+        BASE_DIR_ABS="$BASE_DIR"
+        if [[ -z "$DATA_DIR_ABS" ]]; then
+            echo "Could not resolve DATA_DIR path '$DATA_DIR_ENV'; skipping host delete."
+        else
+            # Ensure DATA_DIR is within the project directory to avoid catastrophic deletes
+            if [[ "$DATA_DIR_ABS" == "$BASE_DIR_ABS"* ]]; then
+                echo "Deleting contents of $DATA_DIR_ABS..."
+                rm -rf "$DATA_DIR_ABS"/*
+                echo "Deleted contents of $DATA_DIR_ABS."
+            else
+                echo "Refusing to delete '$DATA_DIR_ABS' because it is outside the project directory ($BASE_DIR_ABS)."
+                echo "If you really want to remove it, please run the command manually."
+            fi
+        fi
+    fi
+
+    echo "Nuke complete."
+}
+
+#######################################################################
+# Finally, execute it.
+#######################################################################
+
+TIMEFORMAT="Task completed in %3lR"
+# Replace "help" with the name of the desired default function
+time ${@:-help}
