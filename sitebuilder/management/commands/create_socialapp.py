@@ -61,7 +61,7 @@ class Command(BaseCommand):
         try:
             secret = secret_file.read_text().strip()
         except Exception as e:
-            raise CommandError(f"Failed to read secret file: {e}")
+            raise CommandError(f"Failed to read secret file: {e}") from e
 
         if not secret:
             raise CommandError("Secret file is empty")
@@ -69,8 +69,8 @@ class Command(BaseCommand):
         # Get or create the site
         try:
             site = Site.objects.get(pk=site_id)
-        except Site.DoesNotExist:
-            raise CommandError(f"Site with ID {site_id} does not exist")
+        except Site.DoesNotExist as e:
+            raise CommandError(f"Site with ID {site_id} does not exist") from e
 
         # Get or create the social app
         social_app, created = SocialApp.objects.get_or_create(
