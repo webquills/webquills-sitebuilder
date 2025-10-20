@@ -54,12 +54,16 @@ services:
       GITEA__database__NAME: ${GITEA_DB_NAME}
       GITEA__database__USER: ${GITEA_DB_USER}
       GITEA__database__PASSWD: ${GITEA_DB_PASSWORD}
+      GITEA__database__AUTO_MIGRATION: "true"
       GITEA__server__ROOT_URL: ${GITEA_ROOT_URL}
       GITEA__server__HTTP_PORT: ${GITEA_HTTP_PORT}
       GITEA__server__SSH_PORT: ${GITEA_SSH_PORT}
-      GITEA__service__DISABLE_REGISTRATION: ${GITEA_DISABLE_REGISTRATION}
+      GITEA__security__INSTALL_LOCK: "true"
+      GITEA__service__DISABLE_REGISTRATION: "true"
+      GITEA_RUNNER_REGISTRATION_TOKEN_FILE: /data/gitea/runner_token.txt
     volumes:
       - webquills_gitea_data:/data
+      - ./runner_token.txt:/data/gitea/runner_token.txt:ro
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
@@ -74,6 +78,21 @@ services:
       timeout: 3s
       retries: 5
       start_period: 30s
+    networks:
+      - webquills
+
+  act_runner:
+    image: docker.io/gitea/act_runner:latest
+    container_name: webquills-act-runner
+    environment:
+      GITEA_INSTANCE_URL: ${GITEA_ROOT_URL}
+      GITEA_RUNNER_REGISTRATION_TOKEN_FILE: /data/runner_token.txt
+    volumes:
+      - ./runner_token.txt:/data/runner_token.txt:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      gitea:
+        condition: service_healthy
     networks:
       - webquills
 
