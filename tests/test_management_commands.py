@@ -36,6 +36,8 @@ class CreateSocialAppCommandTests(TestCase):
                 "test_client",
                 "--secret-file",
                 secret_file,
+                "--site-id",
+                str(self.site.id),
             )
 
             # Verify the social app was created
@@ -142,6 +144,35 @@ class CreateSocialAppCommandTests(TestCase):
                     "9999",
                 )
             self.assertIn("Site with ID 9999 does not exist", str(cm.exception))
+        finally:
+            Path(secret_file).unlink()
+
+    def test_site_not_provided(self):
+        """Test creating a SocialApp without providing site-id."""
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+            f.write("test_secret_no_site")
+            secret_file = f.name
+
+        try:
+            call_command(
+                "create_socialapp",
+                "--provider",
+                "gitea",
+                "--name",
+                "Test Gitea No Site",
+                "--client-id",
+                "test_client_no_site",
+                "--secret-file",
+                secret_file,
+            )
+
+            # Verify the social app was created without site association
+            social_app = SocialApp.objects.get(
+                provider="gitea", name="Test Gitea No Site"
+            )
+            self.assertEqual(social_app.client_id, "test_client_no_site")
+            self.assertEqual(social_app.secret, "test_secret_no_site")
+            self.assertEqual(social_app.sites.count(), 0)
         finally:
             Path(secret_file).unlink()
 

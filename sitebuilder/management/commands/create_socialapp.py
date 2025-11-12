@@ -43,7 +43,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--site-id",
             type=int,
-            default=1,
+            required=False,
             help="Site ID to associate with the social app (default: 1)",
         )
 
@@ -53,6 +53,7 @@ class Command(BaseCommand):
         client_id = options["client_id"]
         secret_file = Path(options["secret_file"])
         site_id = options["site_id"]
+        site = None
 
         # Read secret from file
         if not secret_file.exists():
@@ -66,14 +67,14 @@ class Command(BaseCommand):
         if not secret:
             raise CommandError("Secret file is empty")
 
-        # Get or create the site
-        try:
-            site = Site.objects.get(pk=site_id)
-        except Site.DoesNotExist as e:
-            raise CommandError(f"Site with ID {site_id} does not exist") from e
+        if site_id:
+            try:
+                site = Site.objects.get(pk=site_id)
+            except Site.DoesNotExist as e:
+                raise CommandError(f"Site with ID {site_id} does not exist") from e
 
         # Get or create the social app
-        social_app, created = SocialApp.objects.get_or_create(
+        social_app, created = SocialApp.objects.update_or_create(
             provider=provider,
             name=name,
             defaults={
@@ -82,22 +83,27 @@ class Command(BaseCommand):
             },
         )
 
-        if not created:
-            # Update existing social app
-            social_app.client_id = client_id
-            social_app.secret = secret
-            social_app.save()
+        if created:
             self.stdout.write(
-                self.style.SUCCESS(f"Updated SocialApp '{name}' for provider '{provider}'")
+                self.style.SUCCESS(
+                    f"Created SocialApp '{name}' for provider '{provider}'"
+                )
             )
         else:
             self.stdout.write(
-                self.style.SUCCESS(f"Created SocialApp '{name}' for provider '{provider}'")
+                self.style.SUCCESS(
+                    f"Updated SocialApp '{name}' for provider '{provider}'"
+                )
             )
 
         # Add site to social app if not already added
-        if not social_app.sites.filter(pk=site_id).exists():
-            social_app.sites.add(site)
-            self.stdout.write(self.style.SUCCESS(f"Associated with site {site.domain}"))
-        else:
-            self.stdout.write(self.style.SUCCESS(f"Already associated with site {site.domain}"))
+        if site:
+            if not social_app.sites.filter(pk=site_id).exists():
+                social_app.sites.add(site)
+                self.stdout.write(
+                    self.style.SUCCESS(f"Associated with site {site.domain}")
+                )
+            else:
+                self.stdout.write(
+                    self.style.SUCCESS(f"Already associated with site {site.domain}")
+                )
