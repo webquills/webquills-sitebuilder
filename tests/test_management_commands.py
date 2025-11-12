@@ -1,5 +1,5 @@
 """
-Tests for the create_socialapp management command.
+Tests for the socialapp management command.
 """
 
 import tempfile
@@ -13,7 +13,7 @@ from django.test import TestCase
 
 
 class CreateSocialAppCommandTests(TestCase):
-    """Tests for create_socialapp management command."""
+    """Tests for socialapp management command."""
 
     def setUp(self):
         """Set up test data."""
@@ -27,7 +27,7 @@ class CreateSocialAppCommandTests(TestCase):
 
         try:
             call_command(
-                "create_socialapp",
+                "socialapp",
                 "--provider",
                 "gitea",
                 "--name",
@@ -65,7 +65,7 @@ class CreateSocialAppCommandTests(TestCase):
 
         try:
             call_command(
-                "create_socialapp",
+                "socialapp",
                 "--provider",
                 "gitea",
                 "--name",
@@ -87,7 +87,7 @@ class CreateSocialAppCommandTests(TestCase):
         """Test error handling when secret file doesn't exist."""
         with self.assertRaises(CommandError) as cm:
             call_command(
-                "create_socialapp",
+                "socialapp",
                 "--provider",
                 "gitea",
                 "--name",
@@ -108,7 +108,7 @@ class CreateSocialAppCommandTests(TestCase):
         try:
             with self.assertRaises(CommandError) as cm:
                 call_command(
-                    "create_socialapp",
+                    "socialapp",
                     "--provider",
                     "gitea",
                     "--name",
@@ -131,7 +131,7 @@ class CreateSocialAppCommandTests(TestCase):
         try:
             with self.assertRaises(CommandError) as cm:
                 call_command(
-                    "create_socialapp",
+                    "socialapp",
                     "--provider",
                     "gitea",
                     "--name",
@@ -155,7 +155,7 @@ class CreateSocialAppCommandTests(TestCase):
 
         try:
             call_command(
-                "create_socialapp",
+                "socialapp",
                 "--provider",
                 "gitea",
                 "--name",
@@ -184,7 +184,7 @@ class CreateSocialAppCommandTests(TestCase):
 
         try:
             call_command(
-                "create_socialapp",
+                "socialapp",
                 "--provider",
                 "gitea",
                 "--name",
