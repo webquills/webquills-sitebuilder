@@ -58,31 +58,7 @@ Updated `example.env` and `.env`:
 - Added `GITEA_ADMIN_EMAIL` - Admin email for Gitea setup
 - Removed deprecated `GITEA_DISABLE_REGISTRATION` (replaced by GITEA__service__DISABLE_REGISTRATION)
 
-### 6. Gitea API Client
-
-Generated Python client from official Gitea OpenAPI specification:
-- Package: `gitea_client/`
-- Generated using openapi-generator-cli Docker image
-- Includes all Gitea API endpoints:
-  - ActivityPub API
-  - Admin API
-  - Issue API
-  - Miscellaneous API
-  - Notification API
-  - Organization API
-  - Package API
-  - Repository API
-  - Settings API
-  - User API
-- Added comprehensive model definitions for all Gitea entities
-- Included type hints and pydantic validation
-- Added dependencies to pyproject.toml:
-  - urllib3 >= 2.1.0, < 3.0.0
-  - python-dateutil >= 2.8.2
-  - pydantic >= 2
-  - typing-extensions >= 4.7.1
-
-### 7. Documentation
+### 6. Documentation
 
 Updated `README.md`:
 - Added Gitea setup instructions
@@ -91,14 +67,9 @@ Updated `README.md`:
 - Added gitea CLI function documentation
 - Noted credential storage locations
 
-Created `gitea_client/README.md`:
-- Usage examples for the API client
-- Generation instructions
-- Dependency list
-
 Added `docs/gitea-api-definition.yaml`:
 - Original OpenAPI specification for reference
-- Used for client generation
+- May be used for client generation
 
 ## Testing
 

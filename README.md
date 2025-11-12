@@ -34,7 +34,7 @@ The easiest way to get started is with Docker Compose, which provides a complete
    ```bash
    ./run setup_gitea
    ```
-   
+
    This will:
    - Initialize the Gitea database
    - Create an admin user (credentials stored in `var/gitea/`)
@@ -77,7 +77,6 @@ The Docker setup includes:
 The project includes a full Gitea integration for Git repository management:
 
 - **Gitea Actions**: The setup includes Gitea Act Runner for CI/CD workflows
-- **API Client**: A Python client for the Gitea API is auto-generated and included in `gitea_client/`
 - **Django Integration**: The `create_socialapp` management command configures django-allauth for Gitea authentication
 - **Setup Script**: Use `./run setup_gitea` to automatically configure Gitea with an admin user and API token
 
