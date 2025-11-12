@@ -135,6 +135,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# Gitea runner token
+runner_token.txt
+
 # Spyder project settings
 .spyderproject
 .spyproject

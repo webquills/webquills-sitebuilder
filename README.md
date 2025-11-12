@@ -13,19 +13,35 @@ The easiest way to get started is with Docker Compose, which provides a complete
    cp example.env .env
    ```
 
-2. Start all services:
+2. Generate a runner token for Gitea Actions:
+   ```bash
+   python3 -c "import secrets; print(secrets.token_hex(32))" > runner_token.txt
+   ```
+
+3. Start all services:
    ```bash
    docker compose up --build
    ```
 
-3. Access the services:
+4. Access the services:
    - **Django app**: http://localhost:8000/
    - **Gitea**: http://localhost:3000/
    - **Gitea SSH**: `ssh://git@localhost:2222`
    - **PostgreSQL**: `localhost:5432` (databases: `webquills` and `gitea`)
    - **Redis**: `localhost:6379`
 
-4. Run Django management commands:
+5. Set up Gitea (one-time setup):
+   ```bash
+   ./run setup_gitea
+   ```
+
+   This will:
+   - Initialize the Gitea database
+   - Create an admin user (credentials stored in `var/gitea/`)
+   - Generate an access token for Django integration
+   - Configure the Django SocialApp for Gitea authentication
+
+6. Run Django management commands:
    ```bash
    ./run manage <command> [args...]
    # Examples:
@@ -33,7 +49,15 @@ The easiest way to get started is with Docker Compose, which provides a complete
    ./run manage shell
    ```
 
-5. Stop all services:
+7. Run Gitea CLI commands:
+   ```bash
+   ./run gitea <command> [args...]
+   # Examples:
+   ./run gitea admin user list
+   ./run gitea admin repo list
+   ```
+
+8. Stop all services:
    ```bash
    docker compose down
    ```
@@ -41,12 +65,22 @@ The easiest way to get started is with Docker Compose, which provides a complete
 The Docker setup includes:
 - PostgreSQL with two databases (`webquills` for Django, `gitea` for Gitea)
 - Redis for Django cache and job queue
-- Gitea for Git repository hosting
+- Gitea for Git repository hosting with Actions support via Act Runner
 - Django web application with hot-reload
 - Background worker (django-rq) for async tasks
 - The image base is `ghcr.io/astral-sh/uv:python3.12-trixie-slim` which includes `uv` tooling and a non-root `appuser`.
 - The project is mounted at `/workspace` inside the container (instead of `/app`).
 - The compose file declares a `webquills_venv` volume that is mounted into `/workspace/.venv`. This prevents accidental reuse of a host `.venv` (which is platform-specific) and avoids binary mismatches between host and container.
+
+### Gitea Integration
+
+The project includes a full Gitea integration for Git repository management:
+
+- **Gitea Actions**: The setup includes Gitea Act Runner for CI/CD workflows
+- **Django Integration**: The `create_socialapp` management command configures django-allauth for Gitea authentication
+- **Setup Script**: Use `./run setup_gitea` to automatically configure Gitea with an admin user and API token
+
+Admin credentials and API tokens are stored in the `DATA_DIR/gitea/` directory (default: `var/gitea/`).
 
 ## Development (Without Docker)
 

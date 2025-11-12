@@ -25,6 +25,17 @@ function help { ## Display usage for this application
         awk 'BEGIN {FS = "{.*?## "}; {printf "\033[93m%-30s\033[92m %s\033[0m\n", $1, $2}'
 }
 
+function gitea { ## Execute gitea CLI in the gitea container (connects to running container or starts new one)
+    # Check if Gitea container is running
+    if docker ps --format '{{.Names}}' | grep -q '^webquills-gitea$'; then
+        # Container is running, exec into it
+        docker exec -it webquills-gitea gitea "$@"
+    else
+        # Container is not running, start a new one
+        docker compose run --rm gitea gitea "$@"
+    fi
+}
+
 function manage { ## Run Django manage.py commands (connects to running container or starts new one)
     # Check if Django container is running
     if docker ps --format '{{.Names}}' | grep -q '^webquills-django$'; then
@@ -108,6 +119,102 @@ function nuke { ## Remove docker compose volumes and delete DATA_DIR (destructiv
     fi
 
     echo "Nuke complete."
+}
+
+function setup_gitea { ## Initialize Gitea, create admin user, and configure Django SocialApp
+    echo "Setting up Gitea..."
+    
+    # Load environment variables from .env if it exists
+    if [[ -f .env ]]; then
+        # shellcheck disable=SC1091
+        source .env
+    fi
+    
+    # Ensure DATA_DIR is set
+    DATA_DIR=${DATA_DIR:-"$BASE_DIR/var"}
+    mkdir -p "$DATA_DIR/gitea"
+    
+    # Check for required environment variables
+    if [[ -z "${GITEA_ADMIN_USER:-}" ]]; then
+        echo "Error: GITEA_ADMIN_USER environment variable is not set"
+        echo "Please set it in your .env file"
+        return 1
+    fi
+    
+    if [[ -z "${GITEA_ADMIN_EMAIL:-}" ]]; then
+        echo "Error: GITEA_ADMIN_EMAIL environment variable is not set"
+        echo "Please set it in your .env file"
+        return 1
+    fi
+    
+    # Run gitea migrate to ensure DB is initialized
+    echo "Running Gitea database migration..."
+    gitea migrate || {
+        echo "Error: Failed to run gitea migrate"
+        return 1
+    }
+    
+    # Check if admin user exists
+    echo "Checking if admin user exists..."
+    if gitea admin user list | grep -q "^$GITEA_ADMIN_USER"; then
+        echo "Admin user '$GITEA_ADMIN_USER' already exists"
+    else
+        echo "Creating admin user '$GITEA_ADMIN_USER'..."
+        # Generate a random password
+        ADMIN_PASSWORD=$(openssl rand -base64 32)
+        ADMIN_PASSWORD_FILE="$DATA_DIR/gitea/admin_password.txt"
+        echo "$ADMIN_PASSWORD" > "$ADMIN_PASSWORD_FILE"
+        chmod 600 "$ADMIN_PASSWORD_FILE"
+        
+        gitea admin user create \
+            --username "$GITEA_ADMIN_USER" \
+            --email "$GITEA_ADMIN_EMAIL" \
+            --password "$ADMIN_PASSWORD" \
+            --admin || {
+            echo "Error: Failed to create admin user"
+            return 1
+        }
+        
+        echo "Admin user created. Password saved to: $ADMIN_PASSWORD_FILE"
+    fi
+    
+    # Generate admin token
+    echo "Generating admin token..."
+    ADMIN_TOKEN_FILE="$DATA_DIR/gitea/admin_token.txt"
+    
+    # Delete old token if it exists
+    if [[ -f "$ADMIN_TOKEN_FILE" ]]; then
+        OLD_TOKEN=$(cat "$ADMIN_TOKEN_FILE")
+        gitea admin user oauth2 delete-token --username "$GITEA_ADMIN_USER" --token "$OLD_TOKEN" 2>/dev/null || true
+    fi
+    
+    # Generate new token
+    ADMIN_TOKEN=$(gitea admin user generate-access-token \
+        --username "$GITEA_ADMIN_USER" \
+        --scopes all \
+        --token-name "Django SocialApp Token" | grep "^Access token:" | awk '{print $3}')
+    
+    if [[ -z "$ADMIN_TOKEN" ]]; then
+        echo "Error: Failed to generate admin token"
+        return 1
+    fi
+    
+    echo "$ADMIN_TOKEN" > "$ADMIN_TOKEN_FILE"
+    chmod 600 "$ADMIN_TOKEN_FILE"
+    echo "Admin token saved to: $ADMIN_TOKEN_FILE"
+    
+    # Update Django SocialApp
+    echo "Updating Django SocialApp for Gitea..."
+    manage create_socialapp \
+        --provider gitea \
+        --name "Gitea" \
+        --client-id "$GITEA_ADMIN_USER" \
+        --secret-file "$ADMIN_TOKEN_FILE" || {
+        echo "Error: Failed to create/update Django SocialApp"
+        return 1
+    }
+    
+    echo "Gitea setup complete!"
 }
 
 #######################################################################
