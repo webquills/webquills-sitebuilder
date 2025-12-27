@@ -1,18 +1,16 @@
 [project]
 name = "sitebuilder"
-version = "5.2.0"
-description = "A Django 5.2 project template"
-requires-python = ">=3.10"
+version = "0.1.0"
+description = "WebQuills Site Builder - A Django-based CMS front-end for Hugo."
+requires-python = ">=3.12"
 dependencies = [
-    "django>=5.2,<6.0",
+    "django>=6.0",
     "django-allauth[socialaccount,mfa]>=65.12.0",
     "django-environ>=0.12.0",
     "django-extensions>=4.1",
     "django-redis>=6.0.0",
-    "django-rq>=3.1.0",
     "docutils>=0.22.2",
     "pillow>=11.3.0",
-    "psycopg[binary]>=3.2.10",
     "redis>=6.4.0",
     "rich>=14.2.0",
     "granian>=2.5.5",
@@ -42,7 +40,7 @@ dev = [
 
 [tool.ruff]
 line-length = 88
-target-version = "py310"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = [

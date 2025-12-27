@@ -22,20 +22,20 @@ repos:
       - id: no-commit-to-branch
 
   - repo: https://github.com/adamchainz/django-upgrade
-    rev: '1.29.0'
+    rev: '1.29.1'
     hooks:
       - id: django-upgrade
         args: ['--target-version', '5.2']
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.21.0
+    rev: v3.21.2
     hooks:
       - id: pyupgrade
-        args: [--py310-plus]
+        args: [--py312-plus]
 
   # Run the Ruff linter.
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.0
+    rev: v0.14.10
     hooks:
       # Linter
       - id: ruff

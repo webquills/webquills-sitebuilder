@@ -1,32 +1,4 @@
 services:
-  postgres:
-    image: postgres:18-alpine
-    container_name: webquills-postgres
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-      DJANGO_DB_NAME: ${DJANGO_DB_NAME}
-      DJANGO_DB_USER: ${DJANGO_DB_USER}
-      DJANGO_DB_PASSWORD: ${DJANGO_DB_PASSWORD}
-      GITEA_DB_NAME: ${GITEA_DB_NAME}
-      GITEA_DB_USER: ${GITEA_DB_USER}
-      GITEA_DB_PASSWORD: ${GITEA_DB_PASSWORD}
-    volumes:
-      # Use docker-managed named volume for database storage. Mount location changed in
-      # PostgreSQL 18 (was /var/lib/postgresql/data).
-      - webquills_postgres_data:/var/lib/postgresql
-      - ./docker/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
-    ports:
-      - "${POSTGRES_PORT}:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - webquills
-
   redis:
     image: redis:7-alpine
     container_name: webquills-redis
@@ -43,40 +15,6 @@ services:
     networks:
       - webquills
 
-  gitea:
-    image: gitea/gitea:1.22
-    container_name: webquills-gitea
-    environment:
-      USER_UID: ${UID}
-      USER_GID: ${GID}
-      GITEA__database__DB_TYPE: postgres
-      GITEA__database__HOST: ${POSTGRES_HOST}:${POSTGRES_PORT}
-      GITEA__database__NAME: ${GITEA_DB_NAME}
-      GITEA__database__USER: ${GITEA_DB_USER}
-      GITEA__database__PASSWD: ${GITEA_DB_PASSWORD}
-      GITEA__server__ROOT_URL: ${GITEA_ROOT_URL}
-      GITEA__server__HTTP_PORT: ${GITEA_HTTP_PORT}
-      GITEA__server__SSH_PORT: ${GITEA_SSH_PORT}
-      GITEA__service__DISABLE_REGISTRATION: ${GITEA_DISABLE_REGISTRATION}
-    volumes:
-      - webquills_gitea_data:/data
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
-    ports:
-      - "${GITEA_HTTP_PORT}:3000"
-      - "${GITEA_SSH_PORT}:22"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/healthz"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 30s
-    networks:
-      - webquills
-
   django:
     build:
       context: .
@@ -87,11 +25,7 @@ services:
     environment:
       DEBUG: ${DEBUG}
       SECRET_KEY: ${SECRET_KEY}
-      DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      REDIS_DB: ${REDIS_DB}
       ALLOWED_HOSTS: "*"
       DATA_DIR: /workspace/var
     volumes:
@@ -103,8 +37,6 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     command: >
@@ -121,51 +53,12 @@ services:
     networks:
       - webquills
 
-  worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: ${DJANGO_IMAGE}
-    container_name: webquills-worker
-    user: "${UID:-1000}:${GID:-1000}"
-    environment:
-      DEBUG: ${DEBUG}
-      SECRET_KEY: ${SECRET_KEY}
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      REDIS_DB: ${REDIS_DB}
-      DATA_DIR: /workspace/var
-    volumes:
-      - .:/workspace
-      - webquills_venv:/workspace/.venv
-      - ${DATA_DIR}:/workspace/var
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      django:
-        condition: service_started
-    command: >
-      sh -c "
-        uv sync &&
-        uv run python manage.py rqworker --with-scheduler default
-      "
-    networks:
-      - webquills
-
 networks:
   webquills:
     driver: bridge
 
 volumes:
-  webquills_postgres_data:
-    driver: local
   webquills_redis_data:
-    driver: local
-  webquills_gitea_data:
     driver: local
   webquills_venv:
     driver: local
