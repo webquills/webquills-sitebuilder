@@ -113,6 +113,14 @@ DOTENV = BASE_DIR / ".env"
 if DOTENV.exists() and not env("IGNORE_ENV_FILE", default=False):
     environ.Env.read_env(DOTENV)
 
+# Local data written by the app should be kept in one directory for ease of backup.
+# In DEV this can be a subdir of BASE_DIR. In production, for single-server setups
+# this should be a directory outside BASE_DIR that is backed up on a regular basis.
+# For scalable configurations, you should not use local paths but external services
+# like S3 and a dedicated database server.
+DATA_DIR = Path(env("DATA_DIR", default=BASE_DIR.joinpath("var")))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
 # SECRET_KEY intentionally has no default, and will error if not provided
 # in the environment. This ensures you don't accidentally run with an
 # insecure configuration in production.
@@ -150,9 +158,18 @@ ACCOUNT_LOGOUT_REDIRECT_URL = "/"
 MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
 MFA_PASSKEY_LOGIN_ENABLED = True
 
-# Social account settings. We'll start with an empty dict and populate it
-# if we have the necessary environment variables.
-SOCIALACCOUNT_PROVIDERS = {}
+# Social account settings. Note: we're storing APPS (credentials) in the database,
+# not here.
+# https://docs.allauth.org/en/latest/socialaccount/providers/index.html
+SOCIALACCOUNT_PROVIDERS = {
+    "github": {
+        "EMAIL_AUTHENTICATION": True,  # Trust email from GitHub
+        # Technically not using scopes because we're a GitHub App, not an OAuth App,
+        # but for documentation purposes:
+        "SCOPE": ["user", "repo", "read:org"],
+        "VERIFIED_EMAIL": True,  # Consider GitHub emails verified
+    },
+}
 # Don't trust 3rd party emails by default. We'll enable this per-provider as needed
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = False
 # If we trust the provider's email, we can auto-connect social accounts
@@ -161,41 +178,16 @@ SOCIALACCOUNT_EMAIL_AUTHENTICATION = False
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 # Automatically create user accounts on successful social login
 SOCIALACCOUNT_AUTO_SIGNUP = True
+# In order to access services on behalf of the user, we need to store the tokens
+SOCIALACCOUNT_STORE_TOKENS = True
+# End django-allauth configuration
 
-# GitHub social login
-GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID", default="")
-GITHUB_SECRET = env("GITHUB_SECRET", default="")
-if GITHUB_CLIENT_ID and GITHUB_SECRET:
-    SOCIALACCOUNT_PROVIDERS["github"] = {
-        "APPS": [
-            {
-                "client_id": GITHUB_CLIENT_ID,
-                "secret": GITHUB_SECRET,
-                "key": "",
-            }
-        ],
-        "EMAIL_AUTHENTICATION": True,  # Trust email from GitHub
-        "SCOPE": ["user", "repo", "read:org"],
-        "VERIFIED_EMAIL": True,
-    }
-
-
-# If running behind a reverse proxy that terminates SSL for you, you need to set
-# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-# and possibly SECURE_SSL_REDIRECT = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-proxy-ssl-header
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-ssl-redirect
 SECURE_SSL_REDIRECT = False
 if env.bool("USE_TLS", default=False):
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = True
-
-# Local data written by the app should be kept in one directory for ease of backup.
-# In DEV this can be a subdir of BASE_DIR. In production, for single-server setups
-# this should be a directory outside BASE_DIR that is backed up on a regular basis.
-# For scalable configurations, you should not use local paths but external services
-# like S3 and a dedicated database server.
-DATA_DIR = Path(env("DATA_DIR", default=BASE_DIR.joinpath("var")))
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
