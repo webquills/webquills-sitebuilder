@@ -12,53 +12,7 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
-    networks:
-      - webquills
-
-  django:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: ${DJANGO_IMAGE}
-    container_name: webquills-django
-    user: "${UID:-1000}:${GID:-1000}"
-    environment:
-      DEBUG: ${DEBUG}
-      SECRET_KEY: ${SECRET_KEY}
-      REDIS_URL: ${REDIS_URL}
-      ALLOWED_HOSTS: "*"
-      DATA_DIR: /workspace/var
-    volumes:
-      # Mount project source into the container workspace
-      - .:/workspace
-      # Keep the container's virtualenv separate from host by mounting a volume
-      - webquills_venv:/workspace/.venv
-      - ${DATA_DIR}:/workspace/var
-    ports:
-      - "8000:8000"
-    depends_on:
-      redis:
-        condition: service_healthy
-    command: >
-      sh -c "
-        uv run python manage.py migrate &&
-        uv run python manage.py runserver 0.0.0.0:8000
-      "
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    networks:
-      - webquills
-
-networks:
-  webquills:
-    driver: bridge
 
 volumes:
   webquills_redis_data:
-    driver: local
-  webquills_venv:
     driver: local
