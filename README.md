@@ -15,33 +15,42 @@ We eschew both the "fat model" approach (where all logic is in the models) and t
 	1. Request/Grant write access to a specific repository
 	2. Pull site metadata from Hugo config, then display pre-populated form.
 	3. Save necessary data to Django models so that sites can be listed and accessed in future. (Design a StaticSite model to hold the data.)
+	4. Index metadata for all pages in the site for future use (search, listing, etc).
 3. Create new site in GitHub repo
 	1. Site creation form
 	2. Create new GitHub repo
 	3. Populate GitHub repo with Hugo site template
 4. List site content
-	1. Display tree of content directory showing all pages and page bundles.
+	1. Display tree of content directory showing all pages, page bundles, and Drafts. Pages and bundles have buttons for Edit and Unpublish. Drafts have buttons for Edit, Publish, and Discard.
 	2. Allow select for edit.
-5. Edit content (Draft)
-	1. If not already on a branch, create a branch for this Draft. Create a pull request for the branch in draft status.
+5. Create a new Draft
+   1. User selects "New Draft" button.
+   2. Display form to select archetype (if multiple archetypes exist) and enter file name (with validation to ensure no conflicts with existing files).
+   3. On form submission, ensure a `_DRAFT` directory exists in the content directory. If not, create it.
+   4. Create new markdown file in the `_DRAFT` directory using the selected archetype and file name. Ensure the front matter contains `draft: true`.
+   5. Display content edit forms for the new Draft (see Edit Content flow).
+6. Edit content (Draft)
+	1. User selects "Edit" button next to a Draft in content tree.
 	2. Load the selected content file from the repo into a pair of forms. Front matter loads into a metadata panel, while content loads into a content editor panel.
-	3. On save, reconstruct the markdown file with front matter from the forms and write the content file to the repo.
-6. Continue working
-	1. Along with the content tree, list Drafts (each Draft is a branch using an identifiable naming scheme, with a PR in draft status). Each Draft has three action buttons: Edit, Publish, Discard.
-	2. User may select a Draft to work on by pressing the Edit button for the Draft.
-	3. Rebase the Draft branch on the main/master branch if necessary.
-	4. If the Draft contains only one edited markdown file, Edit Content.
-	5. If Draft contains multiple edited markdown files, show edited files to select from, then Edit Content on selection.
-7. Publish content
+	3. On save, reconstruct the markdown file with front matter from the forms and write the content file to the repo (in `_DRAFT`).
+7. Edit content (published)
+	1. User selects "Edit" button next to a published page or bundle in content tree.
+	2. Copy the page or bundle to the `_DRAFT` directory as a Draft. Ensure the front matter of the new Draft contains `draft: true`.
+   3. Load the Draft content file from the repo into a pair of forms. Front matter loads into a metadata panel, while content loads into a content editor panel.
+   4. On save, reconstruct the markdown file with front matter from the forms and write the content file to the repo (in `_DRAFT`).
+   5. When user publishes the Draft, the Draft file will be moved from `_DRAFT` to the appropriate location in the content directory.
+   6. The published version of the page or bundle remains unchanged until the Draft is published.
+   7. If the user discards the Draft, the Draft file is moved from `_DRAFT` into a "waste basket" directory and the published version remains unchanged.
+   8. A published page or bundle can have only one associated Draft at a time. A user must either publish or discard an existing Draft before creating a new Draft for that page or bundle.
+8. Publish content
 	1. On list of Drafts, user presses Publish button next to Draft.
-	2. Rebase the Draft branch on the main/master branch if necessary.
-	3. Ensure checks pass on pull request, then merge pull request. If any checks fail, stop and warn user.
-	4. The merge will trigger a build workflow and then a publish workflow.
-8. Discard a Draft
+	2. Move the page or bundle from the `_DRAFT` directory to the appropriate location in the content directory.
+   3. Remove `draft: true` from the front matter.
+9.  Discard a Draft
 	1. On list of Drafts, user selects the Discard button.
 	2. Confirm that the user wants to place this Draft in the waste basket.
-	3. Remove the PR for the selected branch and rename the branch to signify that it is in the waste basket.
-	4. After 90 days of inactivity, branches in the waste basket may be removed from the repository.
+	3. Move the Draft file from `_DRAFT` into a "waste basket" directory.
+	4. After 90 days of inactivity, pages in the waste basket may be removed from the repository.
 
 ## Quick Start Development Environment with Docker (Recommended)
 

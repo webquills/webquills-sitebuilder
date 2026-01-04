@@ -3,7 +3,7 @@ Plan: WebQuills Specification & Implementation
 TL;DR — Produce a developer-ready specification and implementation plan that maps README features to concrete models, service-layer functions, views, templates, background tasks, and tests. This plan breaks work into implementable steps with file and symbol references so tasks can be converted to GitHub issues and handed to developers.
 
 Steps
-1. Define domain models: add `StaticSite`, `RepositoryCredential`, `DraftBranch`, and `ContentFileMetadata` in `sitebuilder/models.py`.
+1. Define domain models: add `StaticSite`, `DraftBranch`, and `ContentFileMetadata` in `sitebuilder/models.py`.
 2. Add service layer modules: `sitebuilder/services/git_provider`, `sitebuilder/services/site`, `sitebuilder/services/content`, `sitebuilder/services/drafts` with clear interfaces.
 3. Implement provider clients: `sitebuilder/services/git_provider/github.py` (PyGitHub) and `sitebuilder/services/git_provider/gitea.py` (requests/pygitea) implementing shared `GitProviderClient` interface.
 4. Build high-level flows: implement `SiteService.import_site_from_repo`, `SiteService.create_site_from_template`, `ContentService.*` and `DraftService.*` in respective modules.
@@ -13,38 +13,63 @@ Steps
 
 Further Considerations
 1. Provider choice: Github via PyGitHub is primary (per README); design `GitProviderClient` interface to allow Gitea/GitLab later.
-2. Security: store tokens in `RepositoryCredential` encrypted (or via Django encrypted fields / vault).
-3. UX options: Option A — server-rendered pages + HTMX for in-place editor updates; Option B — minimal JS but fully server roundtrips.
+2. Token storage: leverage allauth's `SocialToken` model for OAuth tokens; ensure secure storage and refresh handling.
+3. Error handling: robust error handling in service layer for network/API errors, with user-friendly messages in views.
+4. Accessibility: ensure all templates and UIs follow accessibility best practices (keyboard navigation, ARIA roles).
 
 Specification (by feature) — models, services, views, templates, and detailed service actions
 
 Feature 1 — Authentication (existing)
 - Models: none required (uses allauth).
-- Files to update: keep `sitebuilder/adapters.py` as-is; ensure token storage hooks added to `RepositoryCredential` creation on socialaccount connect.
-- Views/Templates: use existing allauth templates in `sitebuilder/templates/account/` and `sitebuilder/templates/allauth/`.
-- Tests: extend `tests/test_authentication.py` to assert token saved on connect.
+- Files to update: Add setting `SOCIALACCOUNT_STORE_TOKENS = True` to ensure tokens are stored on socialaccount connect.
+- Views/Templates: use existing allauth templates in `sitebuilder/templates/account/` and `sitebuilder/templates/allauth/`. Uncomment social login buttons in `account/base.html`.
 
 Feature 2 — Import site from Git provider
 - Models:
-  - `StaticSite` fields: `id`, `name`, `owner_user` (FK), `provider` (choice), `provider_repo_owner`, `provider_repo_name`, `default_branch`, `data_dir` (or repo root path), `metadata` (JSON), `created_at`, `updated_at`.
-  - `RepositoryCredential`: `id`, `user` (FK), `provider`, `access_token`, `scopes`, `expires_at`, `created_at`.
+  - `StaticSite` fields:
+    - `id`: Django's auto field
+    - `name`: Supplied by user or parsed from Hugo config
+    - `owner` (FK to User)
+    - `provider` (choice): Allauth provider (supplies keys and base urls)
+    - `provider_repo_owner` (FK to SocialAccount): provides ID & details of provider user/organization owning the repo. [GitHub best practices](https://docs.github.com/en/apps/creating-github-apps/about-creating-github-apps/best-practices-for-creating-a-github-app#use-the-durable-unique-id-to-store-the-user) advises storing IDs rather than usernames (usernames can change and be reassigned).
+    - `provider_repo_name` (str): for display purposes only
+    - `provider_repo_id` (int/str): unique repo ID from provider API
+    - `default_branch` (str, default "main")
+    - `metadata` (JSON)
+    - `date_created`
+    - `date_modified`
+  - User's repository credentials are stored by Allauth in `allauth.socialaccount.models.SocialToken`. The `token` field contains the access token. The `token_secret` field contains the refresh token. The `expires_at` field contains the expiration time. Expired tokens should be refreshed automatically.
 - Service layer:
   - `sitebuilder/services/site.py` — `import_site_from_repo(repo_url, user, grant_write=False)`:
     - Parse `repo_url` to provider/owner/repo.
-    - Resolve user's `RepositoryCredential` for provider.
+    - Resolve user's `SocialToken` for provider.
     - Use `git_provider = GitProviderFactory.for_provider(provider, credential)` to create client.
     - Call `git_provider.get_repo(owner, repo)` → validate repo access.
-    - Read Hugo config: `git_provider.get_file(repo, 'config.toml' or 'config.yaml', ref=default_branch)` — parse front matter to collect metadata.
+    - Read Hugo config:
+      - Hugo config can be a single file in YAML, TOML, or JSON format, or a directory tree of such files. Hugo also supports environment-specific configuration.
+      - For our purposes, we only need to extract basic site metadata (title, baseURL, languageCode, theme).
+      - For first implementation, just look for `(hugo|config).(yaml|yml|toml|json)` in the root of the default branch.
+      - Use `git_provider.get_file(repo, path, ref=default_branch)` to read config file.
+      - Parse config file using appropriate parser (PyYAML, toml, json).
+      - Future versions, MAYBE: Would it be easier to simply clone the repo locally and run `hugo config` to get the effective configuration? Would require git CLI and Hugo CLI installed on server. (Clone with `--depth 1 --filter=blob:none --no-checkout` to minimize data transfer. Then use `sparse-checkout` to get only config files.)
     - Create `StaticSite` record with parsed metadata and repo info.
     - If `grant_write=True`, create/update repository collaborator permission via `git_provider.add_collaborator(repo, user_account)`.
     - Return `StaticSite` instance and metadata.
   - Libraries: `PyGithub` (Github), `requests` or pygitea for Gitea.
 - Views & Templates:
-  - View: `ImportSiteView` (FormView) at `/sites/import/`.
+  - View: SiteListView (ListView) at `/sites/` — list user's imported sites.
+  - View: SiteDetailView (DetailView) at `/sites/<id>/` — show site metadata and links to content tree.
+  - View: SiteUpdateView (FormView) at `/sites/<id>/edit/` — form to update site metadata (name, default branch).
+  - View: `ImportSiteView` (FormView) at `/sites/import/`. On POST, calls `SiteService.import_site_from_repo()`. On success, redirect to SiteUpdateView.
+  - Form: `ImportSiteForm` — fields for repo URL and options.
+  - On successful import, redirect to SiteUpdateView displaying prefilled metadata from config with edit form.
   - Template: `sitebuilder/templates/sites/import.html` — form for repo URL and options, display prefilled metadata from config with edit form.
+  - Template: `sitebuilder/templates/sites/list.html` — list of user's imported sites with links to manage.
+  - Template: `sitebuilder/templates/sites/detail.html` — site detail view with metadata and links to content tree.
+  - Template: `sitebuilder/templates/sites/update.html` — form to update site metadata.
 - Tests:
   - Unit tests: mock `GitProviderClient` to assert parsing and record creation.
-  - Integration: use test repo fixtures in `var/www/static/test-repos` or use HTTP mocks.
+  - Integration: use test repo fixtures.
 
 Feature 3 — Create new site in provider
 - Services:
@@ -192,7 +217,6 @@ E. Tests & CI
 
 Example Issue Breakdown (convertible to GitHub issues)
 - Models: Create `StaticSite` and migrations.
-- Models: Create `RepositoryCredential` and token storage.
 - Services: Add provider interface and GitHub implementation (PyGitHub).
 - Services: Implement `SiteService.import_site_from_repo`.
 - UI: Implement import site form & template.
